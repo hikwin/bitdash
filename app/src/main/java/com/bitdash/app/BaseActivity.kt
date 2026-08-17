@@ -14,12 +14,14 @@ import com.bitdash.app.market.Prefs
 abstract class BaseActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        Prefs.applyTheme(Prefs.getThemeMode(this))
         applyOrientation()
         super.onCreate(savedInstanceState)
     }
 
     override fun onResume() {
         super.onResume()
+        Prefs.applyTheme(Prefs.getThemeMode(this))
         applyOrientation()
     }
 

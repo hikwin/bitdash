@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 品牌色 -->
+    <color name="brand">#F0B90B</color>
+    <color name="brand_dim">#8A6E08</color>
+
+    <!-- 背景（专业交易深色） -->
+    <color name="bg">#0B0E14</color>
+    <color name="bg_card">#151923</color>
+    <color name="bg_surface">#1E2330</color>
+    <color name="border">#2A3142</color>
+
+    <!-- 文字 -->
+    <color name="text_main">#F1F5F9</color>
+    <color name="text_muted">#8B93A7</color>
+    <color name="text_dim">#5A6478</color>
+
+    <!-- 涨跌（中国惯例：红涨绿跌） -->
+    <color name="up">#EF4444</color>
+    <color name="up_bg">#1AEF4444</color>
+    <color name="down">#22C55E</color>
+    <color name="down_bg">#1A22C55E</color>
+
+    <!-- 均线 -->
+    <color name="ma5">#F59E0B</color>
+    <color name="ma10">#60A5FA</color>
+    <color name="ma20">#A78BFA</color>
+
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+</resources>

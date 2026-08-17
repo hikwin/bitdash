@@ -1,5 +1,6 @@
 package com.bitdash.app.market
 
+import java.math.BigDecimal
 import java.util.Locale
 
 /**
@@ -10,7 +11,9 @@ import java.util.Locale
  * 2. 价格 >= 100 美元（如比特币、以太坊、黄金/PAXG 等）：只显示整数位（如 96420、2730）；
  * 3. 10 <= 价格 < 100 美元：保留 2 位小数（如 19.85）；
  * 4. 1 <= 价格 < 10 美元：显示 4 位小数（如 2.4560）；
- * 5. 价格 < 1 美元：最多显示小数点后 5 位（如 0.07058）。
+ * 5. 价格 < 1 美元：
+ *    - 若小数点后有 >= 5 个 0（特低价格币种）：显示为 0.0(N)XX，其中 (N) 表示紧随小数点的 0 的个数，再接非零有效数字（如 0.0000025 -> 0.0(5)25, 0.000000025 -> 0.0(7)25）；
+ *    - 其余情况最多显示小数点后 5 位，去掉末尾多余 0（如 0.07058）。
  */
 object FloatingFmt {
 
@@ -37,15 +40,36 @@ object FloatingFmt {
      * - >= 100: 整数位（四舍五入）
      * - 10 ~ 100: 保留 2 位小数
      * - 1 ~ 10: 显示 4 位小数
-     * - < 1: 最多 5 位小数（去除尾部多余的 0）
+     * - < 1: 
+     *     - 小数点后 >= 5 个 0: 采用 0.0(N)XX 紧凑计数法（例如 0.0000025 -> 0.0(5)25, 0.000000025 -> 0.0(7)25）
+     *     - 其余最多 5 位小数（去除尾部多余的 0）
      */
     fun price(v: Double): String = when {
         v.isNaN() || v.isInfinite() -> "—"
         v >= 100.0 -> Math.round(v).toString()
         v >= 10.0 -> String.format(LOCALE, "%.2f", v)
         v >= 1.0 -> String.format(LOCALE, "%.4f", v)
-        v > 0.0 -> String.format(LOCALE, "%.5f", v).trimZeros()
+        v > 0.0 -> formatMicroPrice(v)
         else -> "0"
+    }
+
+    private fun formatMicroPrice(v: Double): String {
+        val plain = BigDecimal.valueOf(v).toPlainString()
+        if (plain.startsWith("0.")) {
+            val fractional = plain.substring(2)
+            var zeroCount = 0
+            for (ch in fractional) {
+                if (ch == '0') zeroCount++ else break
+            }
+            if (zeroCount >= 5) {
+                // 小数点后等于或多于 5 个 0，采用 0.0(N)XX 紧凑计数格式
+                val nonZeros = fractional.substring(zeroCount).take(4).trimEnd('0')
+                if (nonZeros.isNotEmpty()) {
+                    return "0.0($zeroCount)$nonZeros"
+                }
+            }
+        }
+        return String.format(LOCALE, "%.5f", v).trimZeros()
     }
 
     /**

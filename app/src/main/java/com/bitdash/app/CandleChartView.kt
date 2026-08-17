@@ -123,6 +123,32 @@ class CandleChartView @JvmOverloads constructor(
         set(v) { field = v; timeFmt = SimpleDateFormat(v, Locale.getDefault()); invalidate() }
     private var timeFmt = SimpleDateFormat("MM-dd HH:mm", Locale.getDefault())
 
+    init {
+        updateThemeColors()
+    }
+
+    /** 主题或配色切换时刷新画笔颜色 */
+    fun updateThemeColors() {
+        gridPaint.color = (androidx.core.content.ContextCompat.getColor(context, R.color.border) and 0x00FFFFFF) or 0x40000000
+        textPaint.color = androidx.core.content.ContextCompat.getColor(context, R.color.text_muted)
+        timePaint.color = androidx.core.content.ContextCompat.getColor(context, R.color.text_muted)
+        upPaint.color = Palette.up(context)
+        downPaint.color = Palette.down(context)
+        upStroke.color = Palette.up(context)
+        downStroke.color = Palette.down(context)
+        ma5Paint.color = androidx.core.content.ContextCompat.getColor(context, R.color.ma5)
+        ma10Paint.color = androidx.core.content.ContextCompat.getColor(context, R.color.ma10)
+        ma20Paint.color = androidx.core.content.ContextCompat.getColor(context, R.color.ma20)
+        lastLinePaint.color = androidx.core.content.ContextCompat.getColor(context, R.color.brand)
+        tagPaint.color = androidx.core.content.ContextCompat.getColor(context, R.color.brand)
+        tagTextPaint.color = androidx.core.content.ContextCompat.getColor(context, R.color.black)
+        crossPaint.color = (androidx.core.content.ContextCompat.getColor(context, R.color.text_muted) and 0x00FFFFFF) or 0xAA000000.toInt()
+        crossLabelBg.color = androidx.core.content.ContextCompat.getColor(context, R.color.border)
+        crossTextPaint.color = androidx.core.content.ContextCompat.getColor(context, R.color.text_main)
+        emptyPaint.color = androidx.core.content.ContextCompat.getColor(context, R.color.text_dim)
+        invalidate()
+    }
+
     // ---------- 公开 API ----------
 
     /** 用户在设置里改了图表字体缩放后调用，更新字号并重新计算布局 */
@@ -133,6 +159,7 @@ class CandleChartView @JvmOverloads constructor(
         tagTextPaint.textSize = 10f * density * fontScale
         crossTextPaint.textSize = 10f * density * fontScale
         emptyPaint.textSize = 14f * density * fontScale
+        updateThemeColors()
         recomputeDimensions(width, height)
         invalidate()
     }

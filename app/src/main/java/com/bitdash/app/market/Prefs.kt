@@ -17,6 +17,7 @@ object Prefs {
     private const val KEY_PREFERRED = "preferred_id"
     private const val KEY_REFRESH_MS = "refresh_ms"
     private const val KEY_ORIENTATION = "orientation"
+    private const val KEY_THEME_MODE = "theme_mode"
     private const val KEY_UP_IS_GREEN = "up_is_green"
     private const val KEY_FONT_SCALE = "font_scale_pct"
     private const val KEY_CHART_FONT_SCALE = "chart_font_scale_pct"
@@ -26,6 +27,32 @@ object Prefs {
     private const val KEY_FLOATING_ALPHA = "floating_alpha_pct"
     private const val KEY_FLOATING_X = "floating_x"
     private const val KEY_FLOATING_Y = "floating_y"
+
+    /** 主题模式：0=夜间模式（默认），1=日间模式（亮色），2=跟随系统 */
+    const val THEME_DARK = 0
+    const val THEME_LIGHT = 1
+    const val THEME_SYSTEM = 2
+
+    // ---------- 外观主题（日间/夜间） ----------
+
+    fun getThemeMode(ctx: Context): Int =
+        sp(ctx).getInt(KEY_THEME_MODE, THEME_DARK)
+
+    fun saveThemeMode(ctx: Context, mode: Int) {
+        sp(ctx).edit().putInt(KEY_THEME_MODE, mode).apply()
+    }
+
+    /** 应用全局日间/夜间主题设置 */
+    fun applyTheme(mode: Int) {
+        val nightMode = when (mode) {
+            THEME_LIGHT -> androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO
+            THEME_SYSTEM -> androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+            else -> androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES
+        }
+        if (androidx.appcompat.app.AppCompatDelegate.getDefaultNightMode() != nightMode) {
+            androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(nightMode)
+        }
+    }
 
     /** 默认悬浮窗透明度百分比 (85%) */
     const val DEFAULT_FLOATING_ALPHA = 85

@@ -49,11 +49,22 @@ class FloatingFmtTest {
 
     @Test
     fun testPriceUnder1() {
-        // 小于1：最多显示小数点后5位
+        // 小于1（0的个数 < 5）：最多显示小数点后5位
         assertEquals("0.07058", FloatingFmt.price(0.07058))
         assertEquals("0.07058", FloatingFmt.price(0.070581))
         assertEquals("0.5", FloatingFmt.price(0.5))
         assertEquals("0.00012", FloatingFmt.price(0.00012))
         assertEquals("0.00001", FloatingFmt.price(0.00001))
+    }
+
+    @Test
+    fun testMicroPriceWithZeros() {
+        // 小数点后等于或多于5个0（特低价格币种）：显示 0.0(N)XX
+        assertEquals("0.0(5)25", FloatingFmt.price(0.0000025))
+        assertEquals("0.0(5)8", FloatingFmt.price(0.000008))
+        assertEquals("0.0(7)25", FloatingFmt.price(0.000000025))
+        assertEquals("0.0(6)1234", FloatingFmt.price(0.00000012345))
+        assertEquals("0.0(6)7", FloatingFmt.price(0.0000007))
+        assertEquals("0.0(10)1", FloatingFmt.price(0.00000000001))
     }
 }

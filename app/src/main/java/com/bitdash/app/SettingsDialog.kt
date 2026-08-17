@@ -64,6 +64,7 @@ object SettingsDialog {
      */
     fun show(activity: Activity, onChanged: () -> Unit) {
         val items = arrayOf(
+            activity.getString(R.string.settings_theme, themeLabel(activity, Prefs.getThemeMode(activity))),
             activity.getString(R.string.settings_source, currentSourceName(activity)),
             activity.getString(R.string.settings_palette, paletteLabel(activity, Prefs.getUpIsGreen(activity))),
             activity.getString(R.string.settings_font_scale, fontScaleLabel(activity, Prefs.getFontScalePct(activity))),
@@ -78,18 +79,47 @@ object SettingsDialog {
             .setTitle(R.string.settings_title)
             .setItems(items) { _, which ->
                 when (which) {
-                    0 -> SourcePicker.show(activity) { onChanged() }
-                    1 -> showPalettePicker(activity, onChanged)
-                    2 -> showFontScalePicker(activity, onChanged)
-                    3 -> showChartFontScalePicker(activity, onChanged)
-                    4 -> showRefreshPicker(activity, onChanged)
-                    5 -> showRealtimePicker(activity, onChanged)
-                    6 -> showOrientationPicker(activity, onChanged)
-                    7 -> showFloatingSettingsPicker(activity, onChanged)
+                    0 -> showThemePicker(activity, onChanged)
+                    1 -> SourcePicker.show(activity) { onChanged() }
+                    2 -> showPalettePicker(activity, onChanged)
+                    3 -> showFontScalePicker(activity, onChanged)
+                    4 -> showChartFontScalePicker(activity, onChanged)
+                    5 -> showRefreshPicker(activity, onChanged)
+                    6 -> showRealtimePicker(activity, onChanged)
+                    7 -> showOrientationPicker(activity, onChanged)
+                    8 -> showFloatingSettingsPicker(activity, onChanged)
                 }
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
+    }
+
+    // ---------- 外观主题（日间/夜间模式） ----------
+
+    private fun showThemePicker(activity: Activity, onChanged: () -> Unit) {
+        val current = Prefs.getThemeMode(activity)
+        val options = intArrayOf(Prefs.THEME_DARK, Prefs.THEME_LIGHT, Prefs.THEME_SYSTEM)
+        val labels = options.map { themeLabel(activity, it) }.toTypedArray()
+        val checked = options.indexOf(current).coerceAtLeast(0)
+
+        AlertDialog.Builder(activity)
+            .setTitle(R.string.settings_theme_title)
+            .setSingleChoiceItems(labels, checked) { dialog, which ->
+                val selected = options[which]
+                Prefs.saveThemeMode(activity, selected)
+                Prefs.applyTheme(selected)
+                dialog.dismiss()
+                onChanged()
+                activity.recreate()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun themeLabel(activity: Activity, mode: Int): String = when (mode) {
+        Prefs.THEME_LIGHT -> activity.getString(R.string.theme_light)
+        Prefs.THEME_SYSTEM -> activity.getString(R.string.theme_system)
+        else -> activity.getString(R.string.theme_dark)
     }
 
     // ---------- 涨跌配色 ----------

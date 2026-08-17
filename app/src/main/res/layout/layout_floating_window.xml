@@ -3,9 +3,11 @@
     android:id="@+id/flFloatingRoot"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
+    android:clipChildren="false"
     android:clipToPadding="false"
-    android:padding="4dp">
+    android:padding="2dp">
 
+    <!-- 完整悬浮胶囊 -->
     <LinearLayout
         android:id="@+id/llFloatingCapsule"
         android:layout_width="wrap_content"
@@ -25,7 +27,7 @@
             android:layout_marginBottom="4dp"
             android:background="#4B5568" />
 
-        <!-- 币种价格展示容器（纵向展示 1~5 个币种） -->
+        <!-- 币种价格展示容器（纵向展示 1~10 个币种） -->
         <LinearLayout
             android:id="@+id/llCoinsContainer"
             android:layout_width="wrap_content"
@@ -35,6 +37,36 @@
             android:orientation="vertical"
             android:showDividers="middle" />
 
+    </LinearLayout>
+
+    <!-- 左贴边悬浮条 -->
+    <LinearLayout
+        android:id="@+id/dockTabLeft"
+        android:layout_width="14dp"
+        android:layout_height="56dp"
+        android:background="@drawable/bg_floating_dock_left"
+        android:gravity="center"
+        android:visibility="gone">
+
+        <View
+            android:layout_width="3dp"
+            android:layout_height="24dp"
+            android:background="#00D26A" />
+    </LinearLayout>
+
+    <!-- 右贴边悬浮条 -->
+    <LinearLayout
+        android:id="@+id/dockTabRight"
+        android:layout_width="14dp"
+        android:layout_height="56dp"
+        android:background="@drawable/bg_floating_dock_right"
+        android:gravity="center"
+        android:visibility="gone">
+
+        <View
+            android:layout_width="3dp"
+            android:layout_height="24dp"
+            android:background="#00D26A" />
     </LinearLayout>
 
 </FrameLayout>

@@ -44,6 +44,7 @@
     <!-- 设置 -->
     <string name="settings">设置</string>
     <string name="settings_title">设置</string>
+    <string name="settings_theme">外观主题：%1$s</string>
     <string name="settings_source">行情源：%1$s</string>
     <string name="settings_palette">涨跌配色：%1$s</string>
     <string name="settings_font_scale">列表字体：%1$s</string>
@@ -51,6 +52,10 @@
     <string name="settings_refresh">自动刷新：%1$s</string>
     <string name="settings_realtime">实时行情：%1$s</string>
     <string name="settings_orientation">屏幕方向：%1$s</string>
+    <string name="settings_theme_title">外观主题</string>
+    <string name="theme_dark">夜间模式（深色，默认）</string>
+    <string name="theme_light">日间模式（浅色/亮色）</string>
+    <string name="theme_system">跟随系统</string>
     <string name="settings_palette_title">涨跌配色</string>
     <string name="settings_font_scale_title">列表项字体大小缩放</string>
     <string name="settings_chart_font_scale_title">图表字体大小缩放</string>

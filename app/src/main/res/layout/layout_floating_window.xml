@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/flFloatingRoot"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:clipToPadding="false"
+    android:padding="4dp">
+
+    <LinearLayout
+        android:id="@+id/llFloatingCapsule"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_floating_capsule"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:paddingStart="8dp"
+        android:paddingTop="5dp"
+        android:paddingEnd="8dp"
+        android:paddingBottom="5dp">
+
+        <!-- 极简顶部拖拽条 -->
+        <View
+            android:layout_width="14dp"
+            android:layout_height="2.5dp"
+            android:layout_marginBottom="4dp"
+            android:background="#4B5568" />
+
+        <!-- 币种价格展示容器（纵向展示 1~5 个币种） -->
+        <LinearLayout
+            android:id="@+id/llCoinsContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:divider="@drawable/bg_floating_item_divider_horizontal"
+            android:gravity="center_vertical"
+            android:orientation="vertical"
+            android:showDividers="middle" />
+
+    </LinearLayout>
+
+</FrameLayout>

@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg"
+    android:orientation="vertical"
+    tools:context=".ChartActivity">
+
+    <!-- 第一行：返回 + 币种 + 价格 + 涨跌 + 24h 高低量 + 设置 (高度固定 36dp) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="36dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="4dp"
+        android:paddingEnd="6dp">
+
+        <ImageButton
+            android:id="@+id/btnBack"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/back"
+            android:src="@drawable/ic_back" />
+
+        <TextView
+            android:id="@+id/tvSymbol"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_main"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            tools:text="BTC-USDT" />
+
+        <TextView
+            android:id="@+id/tvPrice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:fontFamily="monospace"
+            android:textColor="@color/up"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            tools:text="67,231.50" />
+
+        <TextView
+            android:id="@+id/tvChange"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:textColor="@color/up"
+            android:textSize="11sp"
+            tools:text="+2.35%" />
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/tvHigh"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:singleLine="true"
+            android:textColor="@color/text_muted"
+            android:textSize="10sp"
+            tools:text="高 68,000" />
+
+        <TextView
+            android:id="@+id/tvLow"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:singleLine="true"
+            android:textColor="@color/text_muted"
+            android:textSize="10sp"
+            tools:text="低 65,200" />
+
+        <TextView
+            android:id="@+id/tvVol"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:singleLine="true"
+            android:textColor="@color/text_muted"
+            android:textSize="10sp"
+            tools:text="24h额 12.3亿" />
+
+        <ImageButton
+            android:id="@+id/btnChartSettings"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/settings"
+            android:src="@drawable/ic_settings" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/border" />
+
+    <!-- 第二行：周期切换条（横向滑动） + MA 图例 / 十字光标详情 (高度固定 28dp) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="28dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="4dp"
+        android:paddingEnd="6dp">
+
+        <HorizontalScrollView
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:scrollbars="none">
+
+            <RadioGroup
+                android:id="@+id/rgTimeframe"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <RadioButton style="@style/TfButton" android:id="@+id/tf1m" android:text="@string/timeframe_1min" />
+                <RadioButton style="@style/TfButton" android:id="@+id/tf5m" android:text="@string/timeframe_5m" />
+                <RadioButton style="@style/TfButton" android:id="@+id/tf15m" android:text="@string/timeframe_15m" />
+                <RadioButton style="@style/TfButton" android:id="@+id/tf30m" android:text="@string/timeframe_30m" />
+                <RadioButton style="@style/TfButton" android:id="@+id/tf1h" android:text="@string/timeframe_1h" />
+                <RadioButton style="@style/TfButton" android:id="@+id/tf4h" android:text="@string/timeframe_4h" />
+                <RadioButton style="@style/TfButton" android:id="@+id/tf1d" android:text="@string/timeframe_1d" />
+                <RadioButton style="@style/TfButton" android:id="@+id/tf1w" android:text="@string/timeframe_1w" />
+                <RadioButton style="@style/TfButton" android:id="@+id/tf1M" android:text="@string/timeframe_1m" />
+            </RadioGroup>
+        </HorizontalScrollView>
+
+        <!-- 光标详情与 MA 图例叠放，不放长提示文字，单行紧凑 -->
+        <FrameLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_gravity="end|center_vertical"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tvMa5"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="MA5"
+                    android:textColor="@color/ma5"
+                    android:textSize="10sp" />
+
+                <TextView
+                    android:id="@+id/tvMa10"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:text="MA10"
+                    android:textColor="@color/ma10"
+                    android:textSize="10sp" />
+
+                <TextView
+                    android:id="@+id/tvMa20"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:text="MA20"
+                    android:textColor="@color/ma20"
+                    android:textSize="10sp" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tvOhlcv"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="end|center_vertical"
+                android:background="@color/bg"
+                android:ellipsize="end"
+                android:gravity="end|center_vertical"
+                android:singleLine="true"
+                android:textColor="@color/text_muted"
+                android:textSize="10sp"
+                android:visibility="invisible"
+                tools:text="10-21 14:30  开 67000  高 67500  低 66000  收 67231  量 1.2K" />
+        </FrameLayout>
+    </LinearLayout>
+
+    <!-- K 线图：占满剩余全部高度 -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <com.bitdash.app.CandleChartView
+            android:id="@+id/chart"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <TextView
+            android:id="@+id/tvLoading"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="@string/loading"
+            android:textColor="@color/text_dim"
+            android:visibility="gone" />
+    </FrameLayout>
+
+</LinearLayout>

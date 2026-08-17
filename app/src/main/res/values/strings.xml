@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">BitDash</string>
+    <string name="watchlist_title">自选</string>
+    <string name="search_hint">搜索币种，如 BTC、ETH-USDT</string>
+    <string name="add_watch">添加自选</string>
+    <string name="remove_watch">取消自选</string>
+    <string name="empty_watchlist">自选列表为空\n点击右上角 + 添加币种</string>
+    <string name="loading">加载中…</string>
+    <string name="network_error">网络异常，请重试</string>
+    <string name="no_data">暂无数据</string>
+    <string name="stat_high">高 %1$s</string>
+    <string name="stat_low">低 %1$s</string>
+    <string name="stat_vol">24h额 %1$s</string>
+    <string name="item_vol">24h额 %1$s</string>
+    <string name="placeholder">—</string>
+
+    <!-- 行情源 -->
+    <string name="source_title">选择行情源</string>
+    <string name="source_auto">自动选择</string>
+    <string name="source_auto_note">按顺序自动挑选可连通的源，推荐</string>
+    <string name="source_auto_with">自动 · %1$s</string>
+    <string name="source_probing">检测中…</string>
+    <string name="source_unreachable">不可用</string>
+    <string name="source_latency">%1$d ms</string>
+    <string name="source_switch_hint">当前源不可用？点顶部源名切换</string>
+    <string name="remove_confirm">从自选移除 %s？</string>
+    <string name="removed_from_watch">已移除 %s</string>
+    <string name="undo">撤销</string>
+    <string name="no_result">无匹配结果</string>
+    <string name="search_error">加载失败：%1$s</string>
+    <string name="back">返回</string>
+    <string name="chart_hint">双指缩放 · 单指平移 · 点按看详情</string>
+    <string name="timeframe_1min">1分</string>
+    <string name="timeframe_5m">5分</string>
+    <string name="timeframe_15m">15分</string>
+    <string name="timeframe_30m">30分</string>
+    <string name="timeframe_1h">1时</string>
+    <string name="timeframe_4h">4时</string>
+    <string name="timeframe_1d">日</string>
+    <string name="timeframe_1w">周</string>
+    <string name="timeframe_1m">月</string>
+
+    <!-- 设置 -->
+    <string name="settings">设置</string>
+    <string name="settings_title">设置</string>
+    <string name="settings_source">行情源：%1$s</string>
+    <string name="settings_palette">涨跌配色：%1$s</string>
+    <string name="settings_font_scale">列表字体：%1$s</string>
+    <string name="settings_chart_font_scale">图表字体：%1$s</string>
+    <string name="settings_refresh">自动刷新：%1$s</string>
+    <string name="settings_realtime">实时行情：%1$s</string>
+    <string name="settings_orientation">屏幕方向：%1$s</string>
+    <string name="settings_palette_title">涨跌配色</string>
+    <string name="settings_font_scale_title">列表项字体大小缩放</string>
+    <string name="settings_chart_font_scale_title">图表字体大小缩放</string>
+    <string name="settings_refresh_title">自动刷新间隔</string>
+    <string name="settings_realtime_title">实时行情（WebSocket）</string>
+    <string name="settings_orientation_title">屏幕方向</string>
+    <string name="palette_red_up">红涨绿跌（国内常用）</string>
+    <string name="palette_green_up">绿涨红跌（国际常用）</string>
+    <string name="font_scale_hint">输入百分比（如 100、120、150）</string>
+    <string name="font_scale_reset">恢复默认 (100%)</string>
+    <string name="font_scale_invalid">请输入大于或等于 100 的数值</string>
+    <string name="font_scale_range">范围：100% ~ 190%</string>
+    <string name="chart_font_scale_range">范围：100% ~ 150%</string>
+    <string name="font_scale_percent">%1$d%%</string>
+    <string name="refresh_off">关闭（仅手动下拉）</string>
+    <string name="refresh_seconds">%1$d 秒</string>
+
+    <!-- 实时行情 -->
+    <string name="rt_off">关闭</string>
+    <string name="rt_all">全部</string>
+    <string name="rt_chart">仅图表页</string>
+    <string name="rt_watch">仅自选列表</string>
+    <string name="rt_off_desc">关闭（按刷新间隔轮询）</string>
+    <string name="rt_all_desc">全部（自选列表 + 图表页）</string>
+    <string name="rt_chart_desc">仅图表页</string>
+    <string name="rt_watch_desc">仅自选列表</string>
+    <string name="rt_hint">开启后对应页面不受刷新间隔限制，改为交易所实时推送。当前源不支持或连接中断时自动退回轮询。</string>
+    <string name="rt_unsupported">当前源 %1$s 不支持实时推送，已回退到轮询</string>
+    <string name="rt_badge">实时</string>
+    <string name="rt_supported_by">当前源 %1$s 支持实时推送</string>
+    <string name="rt_unsupported_by">当前源 %1$s 不支持实时推送，选择后仍按刷新间隔轮询</string>
+    <string name="orientation_0">0°  竖屏</string>
+    <string name="orientation_90">90°  横屏</string>
+    <string name="orientation_180">180°  反向竖屏</string>
+    <string name="orientation_270">270°  反向横屏</string>
+    <string name="orientation_auto">自动  跟随重力感应</string>
+
+    <!-- 悬浮窗 -->
+    <string name="settings_floating">桌面悬浮窗：%1$s</string>
+    <string name="settings_floating_title">桌面悬浮窗设置</string>
+    <string name="floating_on">已开启（%1$d个币种）</string>
+    <string name="floating_off">已关闭</string>
+    <string name="floating_enable_title">开启桌面悬浮窗</string>
+    <string name="floating_enable_hint">在手机屏幕上极简显示币种实时价格</string>
+    <string name="floating_rules_title">悬浮窗极简显示规则</string>
+    <string name="floating_rules_desc">1. 币种不带 USDT，只显示纯代币名（如 DOGE、BTC）\n2. ≥ 100 美元：只显示整数位（如 BTC 96420）\n3. 10 ~ 100 美元：保留 2 位小数（如 AVAX 25.50）\n4. 1 ~ 10 美元：显示 4 位小数（如 XRP 2.4560）\n5. &lt; 1 美元：最多显示 5 位小数（如 DOGE 0.07058）</string>
+    <string name="floating_select_coins_title">选择显示币种（1 ~ 10 个）</string>
+    <string name="floating_selected_count">已选 %1$d/10</string>
+    <string name="floating_limit_min">至少需要保留 1 个币种</string>
+    <string name="floating_limit_max">最多只能选择 10 个币种</string>
+    <string name="floating_permission_title">需要悬浮窗权限</string>
+    <string name="floating_permission_msg">显示桌面悬浮窗需要在系统设置中允许“显示在其他应用的上层”权限，是否前往开启？</string>
+    <string name="floating_permission_go">前往开启</string>
+    <string name="floating_notification_channel">悬浮窗服务</string>
+    <string name="floating_notification_title">BitDash 悬浮窗</string>
+    <string name="floating_notification_content">正在实时展示行情价格，点击返回应用</string>
+    <string name="floating_in_watchlist">自选</string>
+    <string name="floating_alpha_title">悬浮窗不透明度</string>
+    <string name="floating_alpha_percent">%1$d%%</string>
+</resources>

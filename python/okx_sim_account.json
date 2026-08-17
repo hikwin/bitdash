@@ -1,0 +1,12 @@
+{
+  "balance": 1000.0,
+  "initial_balance": 1000.0,
+  "peak_balance": 1000.0,
+  "max_drawdown": 0.0,
+  "realized_pnl": 0.0,
+  "total_win_pnl": 0.0,
+  "total_loss_pnl": 0.0,
+  "trades": 0,
+  "wins": 0,
+  "consecutive_losses": 0
+}

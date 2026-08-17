@@ -1,0 +1,12 @@
+{
+  "api_key": "ASASA",
+  "api_secret": "",
+  "passphrase": "",
+  "flag": "1",
+  "proxy": "",
+  "magic_mode": "strict",
+  "magic_lookback": 1,
+  "show_macd": false,
+  "show_rsi": false,
+  "show_kdj": false
+}

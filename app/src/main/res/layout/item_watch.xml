@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:minHeight="64dp"
+    android:background="?attr/selectableItemBackground"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp"
+    android:paddingTop="6dp"
+    android:paddingBottom="6dp">
+
+    <!-- 星标（仅搜索页显示） -->
+    <ImageView
+        android:id="@+id/tvStar"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
+        android:layout_marginEnd="10dp"
+        android:contentDescription="@string/add_watch"
+        android:visibility="gone"
+        tools:src="@drawable/ic_star_border"
+        tools:visibility="visible" />
+
+    <!-- 币种 -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvSymbol"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_main"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            tools:text="BTC-USDT" />
+
+        <TextView
+            android:id="@+id/tvVol"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textColor="@color/text_dim"
+            android:textSize="11sp"
+            tools:text="24h量 12.3亿" />
+    </LinearLayout>
+
+    <!-- 最新价 -->
+    <TextView
+        android:id="@+id/tvPrice"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="12dp"
+        android:fontFamily="monospace"
+        android:textColor="@color/text_main"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        tools:text="67,231.50" />
+
+    <!-- 24h 涨跌幅 -->
+    <TextView
+        android:id="@+id/tvChange"
+        android:layout_width="72dp"
+        android:layout_height="30dp"
+        android:background="@drawable/bg_pill"
+        android:gravity="center"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        tools:text="+2.35%" />
+
+</LinearLayout>

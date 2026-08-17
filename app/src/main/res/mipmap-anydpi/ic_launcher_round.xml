@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- API 24/25 圆形启动图标回退，见 mipmap-anydpi/ic_launcher.xml 说明。 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 圆形底色 -->
+    <path
+        android:fillColor="#0B0E14"
+        android:pathData="M54,0A54,54 0 1,1 54,108A54,54 0 1,1 54,0z" />
+
+    <!-- 绿色下跌蜡烛 -->
+    <path
+        android:fillColor="#22C55E"
+        android:pathData="M34,38h4v34h-4z" />
+    <path
+        android:fillColor="#22C55E"
+        android:pathData="M30,46h12v19h-12z" />
+
+    <!-- 红色上涨蜡烛 -->
+    <path
+        android:fillColor="#EF4444"
+        android:pathData="M52,32h4v42h-4z" />
+    <path
+        android:fillColor="#EF4444"
+        android:pathData="M48,39h12v24h-12z" />
+
+    <!-- 品牌色上涨蜡烛 -->
+    <path
+        android:fillColor="#F0B90B"
+        android:pathData="M70,36h4v36h-4z" />
+    <path
+        android:fillColor="#F0B90B"
+        android:pathData="M66,42h12v24h-12z" />
+</vector>

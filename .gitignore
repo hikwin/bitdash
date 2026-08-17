@@ -1,0 +1,91 @@
+# ==========================================
+# Android & Gradle Build Artifacts
+# ==========================================
+.gradle/
+**/build/
+build/
+app/build/
+*.apk
+*.ap_
+*.aab
+*.dex
+*.class
+captures/
+**/gen/
+
+# ==========================================
+# Local SDK & Machine Configurations
+# ==========================================
+local.properties
+.tools/
+
+# ==========================================
+# Signing & Keystore Secrets
+# ==========================================
+*.jks
+*.keystore
+*.key
+key.properties
+signing.properties
+
+# ==========================================
+# IDE & Editor Configurations
+# ==========================================
+# Android Studio / IntelliJ IDEA
+.idea/
+*.iml
+**/*.iml
+.navigation/
+.externalNativeBuild/
+.cxx/
+
+# VS Code
+.vscode/
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# ==========================================
+# OS Generated Files
+# ==========================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ==========================================
+# Python & Runtime Cache (if applicable)
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+.pytest_cache/
+.mypy_cache/
+
+# ==========================================
+# Logs & Diagnostic Dumps
+# ==========================================
+*.log
+*.log.*
+build_*.txt
+*.zip
+*.tar.gz
+
+# ==========================================
+# AI Agent & Local Tooling
+# ==========================================
+.agent/
+.bitfun/
+.gemini/

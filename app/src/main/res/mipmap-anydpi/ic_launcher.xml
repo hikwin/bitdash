@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  API 24/25 的启动图标（自适应图标 adaptive-icon 仅 API 26+ 可用，见 mipmap-anydpi-v26）。
+  这里用一张完整的矢量图作为回退，VectorDrawable 自 API 21 起原生支持。
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 底色 -->
+    <path
+        android:fillColor="#0B0E14"
+        android:pathData="M0,0h108v108h-108z" />
+
+    <!-- 绿色下跌蜡烛 -->
+    <path
+        android:fillColor="#22C55E"
+        android:pathData="M30,34h4v40h-4z" />
+    <path
+        android:fillColor="#22C55E"
+        android:pathData="M26,44h12v22h-12z" />
+
+    <!-- 红色上涨蜡烛 -->
+    <path
+        android:fillColor="#EF4444"
+        android:pathData="M52,28h4v46h-4z" />
+    <path
+        android:fillColor="#EF4444"
+        android:pathData="M48,36h12v26h-12z" />
+
+    <!-- 品牌色上涨蜡烛 -->
+    <path
+        android:fillColor="#F0B90B"
+        android:pathData="M74,24h4v50h-4z" />
+    <path
+        android:fillColor="#F0B90B"
+        android:pathData="M70,32h12v30h-12z" />
+
+    <!-- 底部基线 -->
+    <path
+        android:fillColor="#2A3142"
+        android:pathData="M22,80h64v3h-64z" />
+</vector>

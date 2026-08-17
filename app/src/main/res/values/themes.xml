@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 全局强制深色交易主题 -->
+    <style name="Theme.BitDash" parent="Theme.MaterialComponents.NoActionBar">
+        <item name="colorPrimary">@color/brand</item>
+        <item name="colorPrimaryVariant">@color/brand_dim</item>
+        <item name="colorOnPrimary">@color/black</item>
+        <item name="colorSecondary">@color/brand</item>
+        <item name="colorOnSecondary">@color/black</item>
+
+        <item name="android:windowBackground">@color/bg</item>
+        <item name="android:textColor">@color/text_main</item>
+        <item name="android:textColorPrimary">@color/text_main</item>
+        <item name="android:textColorSecondary">@color/text_muted</item>
+        <item name="android:statusBarColor">@color/bg</item>
+        <item name="android:navigationBarColor">@color/bg</item>
+        <item name="android:windowLightStatusBar">false</item>
+
+        <item name="colorControlActivated">@color/brand</item>
+    </style>
+
+    <!-- 实时行情弹窗里的单选项 -->
+    <style name="RtRadio">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:minHeight">44dp</item>
+        <item name="android:paddingStart">6dp</item>
+        <item name="android:textColor">@color/text_main</item>
+        <item name="android:textSize">15sp</item>
+    </style>
+
+    <!-- 周期选择按钮（横向滚动，固定宽度而非 weight 均分） -->
+    <style name="TfButton">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">24dp</item>
+        <item name="android:minWidth">38dp</item>
+        <item name="android:layout_marginEnd">3dp</item>
+        <item name="android:paddingStart">4dp</item>
+        <item name="android:paddingEnd">4dp</item>
+        <item name="android:background">@drawable/bg_tf</item>
+        <item name="android:textColor">@color/tf_text</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:button">@null</item>
+    </style>
+</resources>

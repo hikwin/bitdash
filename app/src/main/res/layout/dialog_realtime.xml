@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  实时行情范围选择。
+
+  这里必须用自绘的 RadioGroup 而不是 AlertDialog.setSingleChoiceItems()：
+  AlertController 只在 message 为空时才把选项 ListView 挂进视图树，
+  一旦同时设了 setMessage()，选项列表会被静默丢弃、弹窗变成纯文字。
+  说明文案对这个设置很关键（不支持时会回退轮询），所以选择自定义布局。
+-->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="20dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="8dp">
+
+        <!-- 说明：当前源不支持或掉线时的行为 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:lineSpacingExtra="2dp"
+            android:text="@string/rt_hint"
+            android:textColor="@color/text_muted"
+            android:textSize="12sp" />
+
+        <RadioGroup
+            android:id="@+id/rgRealtime"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <RadioButton
+                android:id="@+id/rbRtOff"
+                style="@style/RtRadio"
+                android:text="@string/rt_off_desc" />
+
+            <RadioButton
+                android:id="@+id/rbRtAll"
+                style="@style/RtRadio"
+                android:text="@string/rt_all_desc" />
+
+            <RadioButton
+                android:id="@+id/rbRtChart"
+                style="@style/RtRadio"
+                android:text="@string/rt_chart_desc" />
+
+            <RadioButton
+                android:id="@+id/rbRtWatch"
+                style="@style/RtRadio"
+                android:text="@string/rt_watch_desc" />
+        </RadioGroup>
+
+        <!-- 当前源是否支持实时；运行时填充 -->
+        <TextView
+            android:id="@+id/tvRtSupport"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:lineSpacingExtra="2dp"
+            android:textSize="12sp"
+            android:visibility="gone" />
+    </LinearLayout>
+</ScrollView>

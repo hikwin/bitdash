@@ -277,5 +277,146 @@ object Prefs {
         sp(ctx).edit().putInt(KEY_FLOATING_X, x).putInt(KEY_FLOATING_Y, y).apply()
     }
 
+    // ---------- 技术指标配置与开关 ----------
+
+    private const val KEY_SHOW_MA1 = "ind_show_ma1"
+    private const val KEY_SHOW_MA2 = "ind_show_ma2"
+    private const val KEY_SHOW_MA3 = "ind_show_ma3"
+    private const val KEY_SHOW_BOLL = "ind_show_boll"
+    private const val KEY_SHOW_TURTLE = "ind_show_turtle"
+    private const val KEY_SUB_INDICATOR = "ind_sub_type"
+
+    private const val KEY_MA1_PERIOD = "ind_ma1_period"
+    private const val KEY_MA2_PERIOD = "ind_ma2_period"
+    private const val KEY_MA3_PERIOD = "ind_ma3_period"
+
+    private const val KEY_BOLL_N = "ind_boll_n"
+    private const val KEY_BOLL_K = "ind_boll_k"
+
+    private const val KEY_TURTLE_ENTRY = "ind_turtle_entry"
+    private const val KEY_TURTLE_EXIT = "ind_turtle_exit"
+    private const val KEY_TURTLE_ATR = "ind_turtle_atr"
+
+    private const val KEY_MACD_FAST = "ind_macd_fast"
+    private const val KEY_MACD_SLOW = "ind_macd_slow"
+    private const val KEY_MACD_SIGNAL = "ind_macd_signal"
+
+    private const val KEY_RSI1_PERIOD = "ind_rsi1_period"
+    private const val KEY_RSI2_PERIOD = "ind_rsi2_period"
+    private const val KEY_RSI3_PERIOD = "ind_rsi3_period"
+
+    private const val KEY_KDJ_N = "ind_kdj_n"
+    private const val KEY_KDJ_M1 = "ind_kdj_m1"
+    private const val KEY_KDJ_M2 = "ind_kdj_m2"
+
+    // 默认值
+    const val DEFAULT_MA1 = 5
+    const val DEFAULT_MA2 = 10
+    const val DEFAULT_MA3 = 20
+
+    const val DEFAULT_BOLL_N = 20
+    const val DEFAULT_BOLL_K = 2.0f
+
+    const val DEFAULT_TURTLE_ENTRY = 20
+    const val DEFAULT_TURTLE_EXIT = 10
+    const val DEFAULT_TURTLE_ATR = 20
+
+    const val DEFAULT_MACD_FAST = 12
+    const val DEFAULT_MACD_SLOW = 26
+    const val DEFAULT_MACD_SIGNAL = 9
+
+    const val DEFAULT_RSI1 = 6
+    const val DEFAULT_RSI2 = 12
+    const val DEFAULT_RSI3 = 24
+
+    const val DEFAULT_KDJ_N = 9
+    const val DEFAULT_KDJ_M1 = 3
+    const val DEFAULT_KDJ_M2 = 3
+
+    fun getShowMa1(ctx: Context): Boolean = sp(ctx).getBoolean(KEY_SHOW_MA1, true)
+    fun setShowMa1(ctx: Context, show: Boolean) = sp(ctx).edit().putBoolean(KEY_SHOW_MA1, show).apply()
+
+    fun getShowMa2(ctx: Context): Boolean = sp(ctx).getBoolean(KEY_SHOW_MA2, true)
+    fun setShowMa2(ctx: Context, show: Boolean) = sp(ctx).edit().putBoolean(KEY_SHOW_MA2, show).apply()
+
+    fun getShowMa3(ctx: Context): Boolean = sp(ctx).getBoolean(KEY_SHOW_MA3, true)
+    fun setShowMa3(ctx: Context, show: Boolean) = sp(ctx).edit().putBoolean(KEY_SHOW_MA3, show).apply()
+
+    fun getShowBoll(ctx: Context): Boolean = sp(ctx).getBoolean(KEY_SHOW_BOLL, false)
+    fun setShowBoll(ctx: Context, show: Boolean) = sp(ctx).edit().putBoolean(KEY_SHOW_BOLL, show).apply()
+
+    fun getShowTurtle(ctx: Context): Boolean = sp(ctx).getBoolean(KEY_SHOW_TURTLE, false)
+    fun setShowTurtle(ctx: Context, show: Boolean) = sp(ctx).edit().putBoolean(KEY_SHOW_TURTLE, show).apply()
+
+    /** 当前副图指标："VOL", "MACD", "RSI", "KDJ", "OFF" */
+    fun getSubIndicator(ctx: Context): String = sp(ctx).getString(KEY_SUB_INDICATOR, "VOL") ?: "VOL"
+    fun setSubIndicator(ctx: Context, type: String) = sp(ctx).edit().putString(KEY_SUB_INDICATOR, type).apply()
+
+    // 周期参数 Getter / Setter
+    fun getMa1Period(ctx: Context): Int = sp(ctx).getInt(KEY_MA1_PERIOD, DEFAULT_MA1)
+    fun getMa2Period(ctx: Context): Int = sp(ctx).getInt(KEY_MA2_PERIOD, DEFAULT_MA2)
+    fun getMa3Period(ctx: Context): Int = sp(ctx).getInt(KEY_MA3_PERIOD, DEFAULT_MA3)
+
+    fun getBollN(ctx: Context): Int = sp(ctx).getInt(KEY_BOLL_N, DEFAULT_BOLL_N)
+    fun getBollK(ctx: Context): Float = sp(ctx).getFloat(KEY_BOLL_K, DEFAULT_BOLL_K)
+
+    fun getTurtleEntry(ctx: Context): Int = sp(ctx).getInt(KEY_TURTLE_ENTRY, DEFAULT_TURTLE_ENTRY)
+    fun getTurtleExit(ctx: Context): Int = sp(ctx).getInt(KEY_TURTLE_EXIT, DEFAULT_TURTLE_EXIT)
+    fun getTurtleAtr(ctx: Context): Int = sp(ctx).getInt(KEY_TURTLE_ATR, DEFAULT_TURTLE_ATR)
+
+    fun getMacdFast(ctx: Context): Int = sp(ctx).getInt(KEY_MACD_FAST, DEFAULT_MACD_FAST)
+    fun getMacdSlow(ctx: Context): Int = sp(ctx).getInt(KEY_MACD_SLOW, DEFAULT_MACD_SLOW)
+    fun getMacdSignal(ctx: Context): Int = sp(ctx).getInt(KEY_MACD_SIGNAL, DEFAULT_MACD_SIGNAL)
+
+    fun getRsi1Period(ctx: Context): Int = sp(ctx).getInt(KEY_RSI1_PERIOD, DEFAULT_RSI1)
+    fun getRsi2Period(ctx: Context): Int = sp(ctx).getInt(KEY_RSI2_PERIOD, DEFAULT_RSI2)
+    fun getRsi3Period(ctx: Context): Int = sp(ctx).getInt(KEY_RSI3_PERIOD, DEFAULT_RSI3)
+
+    fun getKdjN(ctx: Context): Int = sp(ctx).getInt(KEY_KDJ_N, DEFAULT_KDJ_N)
+    fun getKdjM1(ctx: Context): Int = sp(ctx).getInt(KEY_KDJ_M1, DEFAULT_KDJ_M1)
+    fun getKdjM2(ctx: Context): Int = sp(ctx).getInt(KEY_KDJ_M2, DEFAULT_KDJ_M2)
+
+    fun saveIndicatorParams(
+        ctx: Context,
+        ma1: Int, ma2: Int, ma3: Int,
+        bollN: Int, bollK: Float,
+        turtleEntry: Int, turtleExit: Int, turtleAtr: Int,
+        macdFast: Int, macdSlow: Int, macdSig: Int,
+        rsi1: Int, rsi2: Int, rsi3: Int,
+        kdjN: Int, kdjM1: Int, kdjM2: Int
+    ) {
+        sp(ctx).edit()
+            .putInt(KEY_MA1_PERIOD, ma1.coerceIn(1, 200))
+            .putInt(KEY_MA2_PERIOD, ma2.coerceIn(1, 200))
+            .putInt(KEY_MA3_PERIOD, ma3.coerceIn(1, 200))
+            .putInt(KEY_BOLL_N, bollN.coerceIn(2, 100))
+            .putFloat(KEY_BOLL_K, bollK.coerceIn(0.5f, 10.0f))
+            .putInt(KEY_TURTLE_ENTRY, turtleEntry.coerceIn(2, 200))
+            .putInt(KEY_TURTLE_EXIT, turtleExit.coerceIn(2, 200))
+            .putInt(KEY_TURTLE_ATR, turtleAtr.coerceIn(2, 100))
+            .putInt(KEY_MACD_FAST, macdFast.coerceIn(1, 100))
+            .putInt(KEY_MACD_SLOW, macdSlow.coerceIn(1, 100))
+            .putInt(KEY_MACD_SIGNAL, macdSig.coerceIn(1, 100))
+            .putInt(KEY_RSI1_PERIOD, rsi1.coerceIn(1, 100))
+            .putInt(KEY_RSI2_PERIOD, rsi2.coerceIn(1, 100))
+            .putInt(KEY_RSI3_PERIOD, rsi3.coerceIn(1, 100))
+            .putInt(KEY_KDJ_N, kdjN.coerceIn(1, 100))
+            .putInt(KEY_KDJ_M1, kdjM1.coerceIn(1, 100))
+            .putInt(KEY_KDJ_M2, kdjM2.coerceIn(1, 100))
+            .apply()
+    }
+
+    fun resetIndicatorParams(ctx: Context) {
+        saveIndicatorParams(
+            ctx,
+            DEFAULT_MA1, DEFAULT_MA2, DEFAULT_MA3,
+            DEFAULT_BOLL_N, DEFAULT_BOLL_K,
+            DEFAULT_TURTLE_ENTRY, DEFAULT_TURTLE_EXIT, DEFAULT_TURTLE_ATR,
+            DEFAULT_MACD_FAST, DEFAULT_MACD_SLOW, DEFAULT_MACD_SIGNAL,
+            DEFAULT_RSI1, DEFAULT_RSI2, DEFAULT_RSI3,
+            DEFAULT_KDJ_N, DEFAULT_KDJ_M1, DEFAULT_KDJ_M2
+        )
+    }
+
     private fun sp(ctx: Context) = ctx.getSharedPreferences(FILE, Context.MODE_PRIVATE)
 }

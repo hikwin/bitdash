@@ -1,0 +1,407 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/bg_card"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- 标题 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="指标参数设置"
+            android:textColor="@color/text_main"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="12dp"
+            android:text="自定义各技术指标的计算周期与参数"
+            android:textColor="@color/text_muted"
+            android:textSize="12sp" />
+
+        <!-- 1. MA 均线 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="MA 移动平均线周期 (1 ~ 200)"
+            android:textColor="@color/ma5"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/etMa1"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_input_box"
+                android:gravity="center"
+                android:hint="MA1 (5)"
+                android:inputType="number"
+                android:textColor="@color/text_main"
+                android:textColorHint="@color/text_dim"
+                android:textSize="14sp" />
+
+            <EditText
+                android:id="@+id/etMa2"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_input_box"
+                android:gravity="center"
+                android:hint="MA2 (10)"
+                android:inputType="number"
+                android:textColor="@color/text_main"
+                android:textColorHint="@color/text_dim"
+                android:textSize="14sp" />
+
+            <EditText
+                android:id="@+id/etMa3"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_input_box"
+                android:gravity="center"
+                android:hint="MA3 (20)"
+                android:inputType="number"
+                android:textColor="@color/text_main"
+                android:textColorHint="@color/text_dim"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <!-- 2. BOLL 布林带 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="BOLL 布林带参数"
+            android:textColor="@color/boll_up"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/etBollN"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_input_box"
+                android:gravity="center"
+                android:hint="周期 N (20)"
+                android:inputType="number"
+                android:textColor="@color/text_main"
+                android:textColorHint="@color/text_dim"
+                android:textSize="14sp" />
+
+            <EditText
+                android:id="@+id/etBollK"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_input_box"
+                android:gravity="center"
+                android:hint="倍数 K (2.0)"
+                android:inputType="numberDecimal"
+                android:textColor="@color/text_main"
+                android:textColorHint="@color/text_dim"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <!-- 3. TURTLE 海龟交易法则 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="TURTLE 海龟法则 (进场 / 离场 / ATR)"
+            android:textColor="@color/turtle_up"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/etTurtleEntry"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_input_box"
+                android:gravity="center"
+                android:hint="进场 (20)"
+                android:inputType="number"
+                android:textColor="@color/text_main"
+                android:textColorHint="@color/text_dim"
+                android:textSize="14sp" />
+
+            <EditText
+                android:id="@+id/etTurtleExit"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_input_box"
+                android:gravity="center"
+                android:hint="离场 (10)"
+                android:inputType="number"
+                android:textColor="@color/text_main"
+                android:textColorHint="@color/text_dim"
+                android:textSize="14sp" />
+
+            <EditText
+                android:id="@+id/etTurtleAtr"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_input_box"
+                android:gravity="center"
+                android:hint="ATR (20)"
+                android:inputType="number"
+                android:textColor="@color/text_main"
+                android:textColorHint="@color/text_dim"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <!-- 4. MACD -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="MACD 指标参数 (快线 / 慢线 / 信号)"
+            android:textColor="@color/text_main"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/etMacdFast"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_input_box"
+                android:gravity="center"
+                android:hint="Fast (12)"
+                android:inputType="number"
+                android:textColor="@color/text_main"
+                android:textColorHint="@color/text_dim"
+                android:textSize="14sp" />
+
+            <EditText
+                android:id="@+id/etMacdSlow"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_input_box"
+                android:gravity="center"
+                android:hint="Slow (26)"
+                android:inputType="number"
+                android:textColor="@color/text_main"
+                android:textColorHint="@color/text_dim"
+                android:textSize="14sp" />
+
+            <EditText
+                android:id="@+id/etMacdSig"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_input_box"
+                android:gravity="center"
+                android:hint="Signal (9)"
+                android:inputType="number"
+                android:textColor="@color/text_main"
+                android:textColorHint="@color/text_dim"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <!-- 4. RSI -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="RSI 相对强弱周期 (1 ~ 100)"
+            android:textColor="@color/ma10"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/etRsi1"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_input_box"
+                android:gravity="center"
+                android:hint="RSI1 (6)"
+                android:inputType="number"
+                android:textColor="@color/text_main"
+                android:textColorHint="@color/text_dim"
+                android:textSize="14sp" />
+
+            <EditText
+                android:id="@+id/etRsi2"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_input_box"
+                android:gravity="center"
+                android:hint="RSI2 (12)"
+                android:inputType="number"
+                android:textColor="@color/text_main"
+                android:textColorHint="@color/text_dim"
+                android:textSize="14sp" />
+
+            <EditText
+                android:id="@+id/etRsi3"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_input_box"
+                android:gravity="center"
+                android:hint="RSI3 (24)"
+                android:inputType="number"
+                android:textColor="@color/text_main"
+                android:textColorHint="@color/text_dim"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <!-- 5. KDJ -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="KDJ 随机指标参数 (N / M1 / M2)"
+            android:textColor="@color/ma20"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/etKdjN"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_input_box"
+                android:gravity="center"
+                android:hint="N (9)"
+                android:inputType="number"
+                android:textColor="@color/text_main"
+                android:textColorHint="@color/text_dim"
+                android:textSize="14sp" />
+
+            <EditText
+                android:id="@+id/etKdjM1"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_input_box"
+                android:gravity="center"
+                android:hint="M1 (3)"
+                android:inputType="number"
+                android:textColor="@color/text_main"
+                android:textColorHint="@color/text_dim"
+                android:textSize="14sp" />
+
+            <EditText
+                android:id="@+id/etKdjM2"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_input_box"
+                android:gravity="center"
+                android:hint="M2 (3)"
+                android:inputType="number"
+                android:textColor="@color/text_main"
+                android:textColorHint="@color/text_dim"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <!-- 操作按钮栏 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnResetDefault"
+                android:layout_width="wrap_content"
+                android:layout_height="42dp"
+                android:background="?attr/selectableItemBackground"
+                android:text="恢复默认"
+                android:textColor="@color/text_muted"
+                android:textSize="13sp" />
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <Button
+                android:id="@+id/btnCancel"
+                android:layout_width="wrap_content"
+                android:layout_height="42dp"
+                android:background="?attr/selectableItemBackground"
+                android:text="取消"
+                android:textColor="@color/text_muted"
+                android:textSize="13sp" />
+
+            <Button
+                android:id="@+id/btnSave"
+                android:layout_width="wrap_content"
+                android:layout_height="42dp"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/bg_btn_primary"
+                android:text="保存"
+                android:textColor="@color/black"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>

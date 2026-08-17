@@ -2,29 +2,33 @@ package com.bitdash.app
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.res.Configuration
 import android.graphics.Canvas
 import android.graphics.DashPathEffect
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
 import android.util.AttributeSet
+import android.view.GestureDetector
+import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.View
+import androidx.core.content.ContextCompat
 import com.bitdash.app.market.Candle
 import com.bitdash.app.market.Fmt
+import com.bitdash.app.market.Indicators
 import com.bitdash.app.market.Palette
 import com.bitdash.app.market.Prefs
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.min
 
 /**
- * 自定义 K 线图（蜡烛 + MA5/10/20 + 成交量 + 右侧价格轴 + 底部时间轴）。
- *
- * - 涨跌配色：跟随设置，默认红涨绿跌（中国惯例），可切为绿涨红跌
- * - 手势：双指缩放（改变可见 K 线数量）、单指平移、单指点按显示十字光标
- * - 兼容 Android 7.0 (API 24)，纯 Canvas 绘制无第三方依赖
+ * 自定义专业级 K 线图（蜡烛 + MA/BOLL 主图 + VOL/MACD/RSI/KDJ 副图 + 右侧价格轴 + 底部时间轴）。
  */
 class CandleChartView @JvmOverloads constructor(
     context: Context,
@@ -32,93 +36,186 @@ class CandleChartView @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
+    data class IndicatorValues(
+        val ma1: Float? = null,
+        val ma2: Float? = null,
+        val ma3: Float? = null,
+        val bollMid: Float? = null,
+        val bollUp: Float? = null,
+        val bollDn: Float? = null,
+        val turtleUp: Float? = null,
+        val turtleDn: Float? = null,
+        val turtleExitLong: Float? = null,
+        val turtleExitShort: Float? = null,
+        val turtleAtr: Float? = null,
+        val vol: Double? = null,
+        val dif: Float? = null,
+        val dea: Float? = null,
+        val macd: Float? = null,
+        val rsi1: Float? = null,
+        val rsi2: Float? = null,
+        val rsi3: Float? = null,
+        val k: Float? = null,
+        val d: Float? = null,
+        val j: Float? = null
+    )
+
     // ---------- 数据 ----------
     private var candles: List<Candle> = emptyList()
-    private var ma5: FloatArray = FloatArray(0)
-    private var ma10: FloatArray = FloatArray(0)
-    private var ma20: FloatArray = FloatArray(0)
+
+    // 主图指标数据
+    private var ma1: FloatArray = FloatArray(0)
+    private var ma2: FloatArray = FloatArray(0)
+    private var ma3: FloatArray = FloatArray(0)
+    private var bollResult: Indicators.BollResult? = null
+    private var turtleResult: Indicators.TurtleResult? = null
+
+    // 副图指标数据
+    private var macdResult: Indicators.MacdResult? = null
+    private var rsi1: FloatArray = FloatArray(0)
+    private var rsi2: FloatArray = FloatArray(0)
+    private var rsi3: FloatArray = FloatArray(0)
+    private var kdjResult: Indicators.KdjResult? = null
+
+    // ---------- 开关与类型配置 ----------
+    var showMa1 = Prefs.getShowMa1(context)
+    var showMa2 = Prefs.getShowMa2(context)
+    var showMa3 = Prefs.getShowMa3(context)
+    var showBoll = Prefs.getShowBoll(context)
+    var showTurtle = Prefs.getShowTurtle(context)
+    var subIndicatorType = Prefs.getSubIndicator(context) // "VOL", "MACD", "RSI", "KDJ", "OFF"
 
     // ---------- 显示状态 ----------
-    private var visibleCount = 90f     // 可见蜡烛数（缩放目标）
-    private var scrollFromRight = 0f   // 右端距最新的偏移（0=贴最新）
+    private var visibleCount = 90f     // 可见蜡烛数
+    private var scrollFromRight = 0f   // 右端偏移
 
     // 十字光标（-1 表示隐藏）
     private var crossIndex = -1
     private var crossY = -1f
+    private var isTrackingCrosshair = false
 
-    // 回调：光标变化时通知宿主更新行情信息栏
+    // 回调
     var onCrosshairChange: ((Candle?) -> Unit)? = null
+    var onIndicatorsChange: ((IndicatorValues) -> Unit)? = null
 
     private val density = resources.displayMetrics.density
     private var fontScale: Float = Prefs.getChartFontScale(context)
 
-    // ---------- 尺寸（px，onSizeChanged 中计算） ----------
-    private var axisW = 0f       // 右侧价格轴宽
-    private var axisH = 0f       // 底部时间轴高
-    private var chartW = 0f      // 绘图区宽
-    private var priceH = 0f      // 价格区高
-    private var volTop = 0f      // 成交量区顶部
-    private var volH = 0f        // 成交量区高
+    // ---------- 尺寸 ----------
+    private var axisW = 0f
+    private var axisH = 0f
+    private var chartW = 0f
+    private var priceH = 0f
+    private var volTop = 0f
+    private var volH = 0f
 
-    // ---------- 画笔（字号一律按 density 折算，避免真机上过小） ----------
+    // ---------- 画笔 ----------
     private val gridPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0x2E2A3142.toInt(); strokeWidth = 1f
+        strokeWidth = 1f
     }
-    private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF8B93A7.toInt(); textSize = 10f * density * fontScale
+    private val subGridPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        strokeWidth = 1f
+        pathEffect = DashPathEffect(floatArrayOf(3f * density, 3f * density), 0f)
     }
+    private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val timePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF8B93A7.toInt(); textSize = 10f * density * fontScale
         textAlign = Paint.Align.CENTER
     }
     private val upPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Palette.up(context); style = Paint.Style.FILL
+        style = Paint.Style.FILL
     }
     private val downPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Palette.down(context); style = Paint.Style.FILL
+        style = Paint.Style.FILL
     }
     private val upStroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Palette.up(context); style = Paint.Style.STROKE; strokeWidth = 1f * density
+        style = Paint.Style.STROKE; strokeWidth = 1f * density
     }
     private val downStroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Palette.down(context); style = Paint.Style.STROKE; strokeWidth = 1f * density
+        style = Paint.Style.STROKE; strokeWidth = 1f * density
     }
-    private val ma5Paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFF59E0B.toInt(); style = Paint.Style.STROKE; strokeWidth = 1.2f * density
+    private val ma1Paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeWidth = 1.2f * density
     }
-    private val ma10Paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF60A5FA.toInt(); style = Paint.Style.STROKE; strokeWidth = 1.2f * density
+    private val ma2Paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeWidth = 1.2f * density
     }
-    private val ma20Paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFA78BFA.toInt(); style = Paint.Style.STROKE; strokeWidth = 1.2f * density
+    private val ma3Paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeWidth = 1.2f * density
     }
-    private val lastLinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFF0B90B.toInt(); style = Paint.Style.STROKE; strokeWidth = 1f * density
-        pathEffect = DashPathEffect(floatArrayOf(5f * density, 4f * density), 0f)
+    private val bollUpPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeWidth = 1.2f * density
     }
-    private val tagPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFF0B90B.toInt()
+    private val bollDnPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeWidth = 1.2f * density
     }
-    private val tagTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF0B0E14.toInt(); textSize = 10f * density * fontScale; isFakeBoldText = true
+    private val turtleUpPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeWidth = 1.2f * density
     }
-    private val crossPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xAA8B93A7.toInt(); style = Paint.Style.STROKE; strokeWidth = 1f
+    private val turtleDnPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeWidth = 1.2f * density
+    }
+    private val turtleExitPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeWidth = 1f * density
         pathEffect = DashPathEffect(floatArrayOf(3f * density, 3f * density), 0f)
     }
-    private val crossLabelBg = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF2A3142.toInt()
+    private val turtleFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
     }
+    private val difPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeWidth = 1.2f * density
+    }
+    private val deaPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeWidth = 1.2f * density
+    }
+    private val rsi1Paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeWidth = 1.2f * density
+    }
+    private val rsi2Paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeWidth = 1.2f * density
+    }
+    private val rsi3Paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeWidth = 1.2f * density
+    }
+    private val kdjKPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeWidth = 1.2f * density
+    }
+    private val kdjDPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeWidth = 1.2f * density
+    }
+    private val kdjJPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeWidth = 1.2f * density
+    }
+    private val lastLinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeWidth = 1f * density
+        pathEffect = DashPathEffect(floatArrayOf(5f * density, 4f * density), 0f)
+    }
+    private val tagPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val tagTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        isFakeBoldText = true
+    }
+    private val crossPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        pathEffect = DashPathEffect(floatArrayOf(4f * density, 3f * density), 0f)
+    }
+    private val crossDotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+        color = 0xFFF0B90B.toInt()
+    }
+    private val crossDotStroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        color = 0xFFFFFFFF.toInt()
+    }
+    private val crossLabelBg = Paint(Paint.ANTI_ALIAS_FLAG)
     private val crossTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFF1F5F9.toInt(); textSize = 10f * density * fontScale
+        isFakeBoldText = true
     }
     private val emptyPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFF5A6478.toInt(); textSize = 14f * density * fontScale; textAlign = Paint.Align.CENTER
+        textAlign = Paint.Align.CENTER
     }
 
-    private val maPath = Path()
+    private val linePath = Path()
 
-    // 时间格式（按 K 线周期选择）
+    // 时间格式
     var timePattern = "MM-dd HH:mm"
         set(v) { field = v; timeFmt = SimpleDateFormat(v, Locale.getDefault()); invalidate() }
     private var timeFmt = SimpleDateFormat("MM-dd HH:mm", Locale.getDefault())
@@ -129,29 +226,62 @@ class CandleChartView @JvmOverloads constructor(
 
     /** 主题或配色切换时刷新画笔颜色 */
     fun updateThemeColors() {
-        gridPaint.color = (androidx.core.content.ContextCompat.getColor(context, R.color.border) and 0x00FFFFFF) or 0x40000000
-        textPaint.color = androidx.core.content.ContextCompat.getColor(context, R.color.text_muted)
-        timePaint.color = androidx.core.content.ContextCompat.getColor(context, R.color.text_muted)
+        val border = ContextCompat.getColor(context, R.color.border)
+        val brand = ContextCompat.getColor(context, R.color.brand)
+        val textMain = ContextCompat.getColor(context, R.color.text_main)
+        val textMuted = ContextCompat.getColor(context, R.color.text_muted)
+        val textDim = ContextCompat.getColor(context, R.color.text_dim)
+        val isNight = (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+
+        gridPaint.color = (border and 0x00FFFFFF) or 0x40000000
+        subGridPaint.color = (border and 0x00FFFFFF) or 0x30000000
+        textPaint.color = textMuted
+        timePaint.color = textMuted
         upPaint.color = Palette.up(context)
         downPaint.color = Palette.down(context)
         upStroke.color = Palette.up(context)
         downStroke.color = Palette.down(context)
-        ma5Paint.color = androidx.core.content.ContextCompat.getColor(context, R.color.ma5)
-        ma10Paint.color = androidx.core.content.ContextCompat.getColor(context, R.color.ma10)
-        ma20Paint.color = androidx.core.content.ContextCompat.getColor(context, R.color.ma20)
-        lastLinePaint.color = androidx.core.content.ContextCompat.getColor(context, R.color.brand)
-        tagPaint.color = androidx.core.content.ContextCompat.getColor(context, R.color.brand)
-        tagTextPaint.color = androidx.core.content.ContextCompat.getColor(context, R.color.black)
-        crossPaint.color = (androidx.core.content.ContextCompat.getColor(context, R.color.text_muted) and 0x00FFFFFF) or 0xAA000000.toInt()
-        crossLabelBg.color = androidx.core.content.ContextCompat.getColor(context, R.color.border)
-        crossTextPaint.color = androidx.core.content.ContextCompat.getColor(context, R.color.text_main)
-        emptyPaint.color = androidx.core.content.ContextCompat.getColor(context, R.color.text_dim)
+
+        ma1Paint.color = ContextCompat.getColor(context, R.color.ma5)
+        ma2Paint.color = ContextCompat.getColor(context, R.color.ma10)
+        ma3Paint.color = ContextCompat.getColor(context, R.color.ma20)
+
+        bollUpPaint.color = ContextCompat.getColor(context, R.color.boll_up)
+        bollDnPaint.color = ContextCompat.getColor(context, R.color.boll_dn)
+
+        turtleUpPaint.color = ContextCompat.getColor(context, R.color.turtle_up)
+        turtleDnPaint.color = ContextCompat.getColor(context, R.color.turtle_dn)
+        turtleExitPaint.color = ContextCompat.getColor(context, R.color.turtle_exit)
+        turtleFillPaint.color = ContextCompat.getColor(context, R.color.turtle_fill)
+
+        difPaint.color = textMain
+        deaPaint.color = ContextCompat.getColor(context, R.color.ma5)
+
+        rsi1Paint.color = ContextCompat.getColor(context, R.color.ma5)
+        rsi2Paint.color = ContextCompat.getColor(context, R.color.ma10)
+        rsi3Paint.color = ContextCompat.getColor(context, R.color.ma20)
+
+        kdjKPaint.color = ContextCompat.getColor(context, R.color.ma5)
+        kdjDPaint.color = ContextCompat.getColor(context, R.color.ma10)
+        kdjJPaint.color = ContextCompat.getColor(context, R.color.boll_up)
+
+        lastLinePaint.color = brand
+        tagPaint.color = brand
+        tagTextPaint.color = ContextCompat.getColor(context, R.color.black)
+
+        // 十字光标高对比度高亮（暗色下明亮浅白蓝，亮色下深灰，绝不与背景混淆）
+        crossPaint.color = if (isNight) 0xFFCBD5E1.toInt() else 0xFF475569.toInt()
+        crossPaint.strokeWidth = 1.2f * density
+        crossDotStroke.strokeWidth = 1.5f * density
+        crossLabelBg.color = if (isNight) 0xFF334155.toInt() else 0xFF1E293B.toInt()
+        crossTextPaint.color = 0xFFFFFFFF.toInt()
+
+        emptyPaint.color = textDim
         invalidate()
     }
 
     // ---------- 公开 API ----------
 
-    /** 用户在设置里改了图表字体缩放后调用，更新字号并重新计算布局 */
     fun applyFontScale(scale: Float = Prefs.getChartFontScale(context)) {
         fontScale = scale
         textPaint.textSize = 10f * density * fontScale
@@ -164,10 +294,23 @@ class CandleChartView @JvmOverloads constructor(
         invalidate()
     }
 
+    /** 刷新指标开关并重绘 */
+    fun refreshIndicatorToggles() {
+        showMa1 = Prefs.getShowMa1(context)
+        showMa2 = Prefs.getShowMa2(context)
+        showMa3 = Prefs.getShowMa3(context)
+        showBoll = Prefs.getShowBoll(context)
+        showTurtle = Prefs.getShowTurtle(context)
+        subIndicatorType = Prefs.getSubIndicator(context)
+        computeAllIndicators()
+        notifyCurrentIndicatorValues()
+        invalidate()
+    }
+
     /** 替换数据，保留当前缩放/平移状态 */
     fun setData(list: List<Candle>) {
         candles = list
-        computeMa()
+        computeAllIndicators()
         clampScroll()
         if (crossIndex >= 0) {
             if (crossIndex < list.size) {
@@ -177,12 +320,12 @@ class CandleChartView @JvmOverloads constructor(
                 onCrosshairChange?.invoke(null)
             }
         }
+        notifyCurrentIndicatorValues()
         invalidate()
     }
 
     fun isEmptyData(): Boolean = candles.isEmpty()
 
-    /** 用户在设置里改了涨跌配色后调用，重新取色并重绘 */
     fun applyPalette() {
         val up = Palette.up(context)
         val down = Palette.down(context)
@@ -193,18 +336,20 @@ class CandleChartView @JvmOverloads constructor(
         invalidate()
     }
 
-    /** 切换周期时调用：回到最新一根并复位光标 */
     fun resetView() {
         scrollFromRight = 0f
         crossIndex = -1
         crossY = -1f
+        isTrackingCrosshair = false
         onCrosshairChange?.invoke(null)
+        notifyCurrentIndicatorValues()
         invalidate()
     }
 
     // ---------- 手势 ----------
 
     private var lastX = 0f
+    private var lastY = 0f
     private var downX = 0f
     private var downY = 0f
     private var scaling = false
@@ -217,12 +362,9 @@ class CandleChartView @JvmOverloads constructor(
             override fun onScale(detector: ScaleGestureDetector): Boolean {
                 if (candles.isEmpty() || chartW <= 0f) return true
                 val old = visibleCount
-                // 因子 > 1 → 放大（更少可见）；< 1 → 缩小（更多可见）
                 visibleCount = (visibleCount / detector.scaleFactor)
                     .coerceIn(MIN_VISIBLE.toFloat(), candles.size.coerceAtLeast(MIN_VISIBLE).toFloat())
-                // 围绕焦点缩放：让焦点处的蜡烛尽量保持不动
                 val focusRatio = ((detector.focusX - paddingLeft) / chartW).coerceIn(0f, 1f)
-                // 焦点距右端的蜡烛数在缩放前后保持一致
                 scrollFromRight += (old - visibleCount) * (1f - focusRatio)
                 clampScroll()
                 invalidate()
@@ -230,30 +372,68 @@ class CandleChartView @JvmOverloads constructor(
             }
         })
 
+    private val gestureDetector = GestureDetector(
+        context,
+        object : GestureDetector.SimpleOnGestureListener() {
+            override fun onDown(e: MotionEvent): Boolean = true
+
+            override fun onLongPress(e: MotionEvent) {
+                isTrackingCrosshair = true
+                parent?.requestDisallowInterceptTouchEvent(true)
+                updateCrosshair(e.x, e.y)
+                try {
+                    performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                } catch (_: Exception) {}
+            }
+
+            override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
+                if (crossIndex < 0) {
+                    updateCrosshair(e.x, e.y)
+                } else {
+                    hideCrosshair()
+                    invalidate()
+                }
+                return true
+            }
+        }
+    )
+
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
         scaleDetector.onTouchEvent(event)
+        gestureDetector.onTouchEvent(event)
+
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 parent?.requestDisallowInterceptTouchEvent(true)
                 lastX = event.x
+                lastY = event.y
                 downX = event.x
                 downY = event.y
                 scaling = false
                 dragging = false
+                if (crossIndex >= 0) {
+                    isTrackingCrosshair = true
+                    updateCrosshair(event.x, event.y)
+                }
                 return true
             }
             MotionEvent.ACTION_POINTER_DOWN -> {
                 scaling = true
+                isTrackingCrosshair = false
                 hideCrosshair()
             }
             MotionEvent.ACTION_MOVE -> {
                 if (scaleDetector.isInProgress) {
                     scaling = true
+                    isTrackingCrosshair = false
+                } else if (isTrackingCrosshair) {
+                    // 长按或十字线开启后滑动：跟随手指精确移动十字光标
+                    updateCrosshair(event.x, event.y)
                 } else if (!scaling) {
                     if (!dragging &&
-                        Math.abs(event.x - downX) > touchSlop &&
-                        Math.abs(event.x - downX) > Math.abs(event.y - downY)
+                        abs(event.x - downX) > touchSlop &&
+                        abs(event.x - downX) > abs(event.y - downY)
                     ) {
                         dragging = true
                     }
@@ -270,20 +450,8 @@ class CandleChartView @JvmOverloads constructor(
                     }
                 }
             }
-            MotionEvent.ACTION_UP -> {
-                // 只有"没有缩放、没有拖动"的点按才切换十字光标
-                if (!scaling && !dragging) {
-                    if (crossIndex < 0) {
-                        updateCrosshair(event.x, event.y)
-                    } else {
-                        hideCrosshair()
-                        invalidate()
-                    }
-                }
-                scaling = false
-                dragging = false
-            }
-            MotionEvent.ACTION_CANCEL -> {
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                isTrackingCrosshair = false
                 scaling = false
                 dragging = false
             }
@@ -295,7 +463,9 @@ class CandleChartView @JvmOverloads constructor(
         if (crossIndex >= 0) {
             crossIndex = -1
             crossY = -1f
+            isTrackingCrosshair = false
             onCrosshairChange?.invoke(null)
+            notifyCurrentIndicatorValues()
         }
     }
 
@@ -308,7 +478,49 @@ class CandleChartView @JvmOverloads constructor(
         crossIndex = idx.coerceIn(range.first, range.last)
         crossY = y.coerceIn(paddingTop.toFloat(), paddingTop + priceH)
         onCrosshairChange?.invoke(candles.getOrNull(crossIndex))
+        notifyCurrentIndicatorValues(crossIndex)
         invalidate()
+    }
+
+    private fun notifyCurrentIndicatorValues(targetIdx: Int = if (crossIndex >= 0) crossIndex else (candles.size - 1)) {
+        if (candles.isEmpty() || targetIdx !in candles.indices) return
+        val c = candles[targetIdx]
+        val m1 = if (targetIdx < ma1.size && ma1[targetIdx] > 0f) ma1[targetIdx] else null
+        val m2 = if (targetIdx < ma2.size && ma2[targetIdx] > 0f) ma2[targetIdx] else null
+        val m3 = if (targetIdx < ma3.size && ma3[targetIdx] > 0f) ma3[targetIdx] else null
+
+        val bMid = bollResult?.mid?.getOrNull(targetIdx)?.takeIf { it > 0f }
+        val bUp = bollResult?.up?.getOrNull(targetIdx)?.takeIf { it > 0f }
+        val bDn = bollResult?.dn?.getOrNull(targetIdx)?.takeIf { it > 0f }
+
+        val dif = macdResult?.dif?.getOrNull(targetIdx)
+        val dea = macdResult?.dea?.getOrNull(targetIdx)
+        val macd = macdResult?.macd?.getOrNull(targetIdx)
+
+        val r1 = rsi1.getOrNull(targetIdx)?.takeIf { it > 0f }
+        val r2 = rsi2.getOrNull(targetIdx)?.takeIf { it > 0f }
+        val r3 = rsi3.getOrNull(targetIdx)?.takeIf { it > 0f }
+
+        val k = kdjResult?.k?.getOrNull(targetIdx)
+        val d = kdjResult?.d?.getOrNull(targetIdx)
+        val j = kdjResult?.j?.getOrNull(targetIdx)
+
+        val tUp = turtleResult?.upper?.getOrNull(targetIdx)?.takeIf { it > 0f }
+        val tDn = turtleResult?.lower?.getOrNull(targetIdx)?.takeIf { it > 0f }
+        val tExL = turtleResult?.exitLong?.getOrNull(targetIdx)?.takeIf { it > 0f }
+        val tExS = turtleResult?.exitShort?.getOrNull(targetIdx)?.takeIf { it > 0f }
+        val tAtr = turtleResult?.atr?.getOrNull(targetIdx)?.takeIf { it > 0f }
+
+        val values = IndicatorValues(
+            ma1 = m1, ma2 = m2, ma3 = m3,
+            bollMid = bMid, bollUp = bUp, bollDn = bDn,
+            turtleUp = tUp, turtleDn = tDn, turtleExitLong = tExL, turtleExitShort = tExS, turtleAtr = tAtr,
+            vol = c.vol,
+            dif = dif, dea = dea, macd = macd,
+            rsi1 = r1, rsi2 = r2, rsi3 = r3,
+            k = k, d = d, j = j
+        )
+        onIndicatorsChange?.invoke(values)
     }
 
     // ---------- 布局与绘制 ----------
@@ -319,9 +531,15 @@ class CandleChartView @JvmOverloads constructor(
         axisH = 16f * density * fontScale
         chartW = (w - paddingLeft - paddingRight - axisW).coerceAtLeast(10f)
         val body = (h - paddingTop - paddingBottom - axisH).coerceAtLeast(10f)
-        priceH = body * 0.76f
-        volH = body * 0.24f
-        volTop = paddingTop + priceH
+        if (subIndicatorType == "OFF") {
+            priceH = body
+            volH = 0f
+            volTop = paddingTop + priceH
+        } else {
+            priceH = body * 0.74f
+            volH = body * 0.26f
+            volTop = paddingTop + priceH
+        }
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -345,39 +563,54 @@ class CandleChartView @JvmOverloads constructor(
         val n = rightIdx - leftIdx + 1
         val sub = candles.subList(leftIdx, rightIdx + 1)
 
-        // ---- 价格范围（含已定义的 MA 值）----
+        // ---- 1. 计算主图价格范围 ----
         var minP = Double.MAX_VALUE
         var maxP = -Double.MAX_VALUE
         for (c in sub) {
             if (c.low < minP) minP = c.low
             if (c.high > maxP) maxP = c.high
         }
+
+        // MA / BOLL / TURTLE 纳入价格轴
         for (i in leftIdx..rightIdx) {
-            for (arr in arrayOf(ma5, ma10, ma20)) {
-                val v = if (i < arr.size) arr[i].toDouble() else 0.0
-                // MA 未定义区填的是 0，必须排除，否则价格轴会被拉到 0
-                if (v > 0.0) {
-                    if (v < minP) minP = v
-                    if (v > maxP) maxP = v
+            if (showMa1 && i < ma1.size && ma1[i] > 0f) {
+                if (ma1[i] < minP) minP = ma1[i].toDouble()
+                if (ma1[i] > maxP) maxP = ma1[i].toDouble()
+            }
+            if (showMa2 && i < ma2.size && ma2[i] > 0f) {
+                if (ma2[i] < minP) minP = ma2[i].toDouble()
+                if (ma2[i] > maxP) maxP = ma2[i].toDouble()
+            }
+            if (showMa3 && i < ma3.size && ma3[i] > 0f) {
+                if (ma3[i] < minP) minP = ma3[i].toDouble()
+                if (ma3[i] > maxP) maxP = ma3[i].toDouble()
+            }
+            if (showBoll) {
+                bollResult?.let { boll ->
+                    if (i < boll.up.size && boll.up[i] > 0f) {
+                        if (boll.up[i] > maxP) maxP = boll.up[i].toDouble()
+                        if (boll.dn[i] < minP && boll.dn[i] > 0f) minP = boll.dn[i].toDouble()
+                    }
+                }
+            }
+            if (showTurtle) {
+                turtleResult?.let { t ->
+                    if (i < t.upper.size && t.upper[i] > 0f) {
+                        if (t.upper[i] > maxP) maxP = t.upper[i].toDouble()
+                        if (t.lower[i] < minP && t.lower[i] > 0f) minP = t.lower[i].toDouble()
+                    }
                 }
             }
         }
+
         if (minP == Double.MAX_VALUE) { minP = 0.0; maxP = 1.0 }
-        if (maxP <= minP) maxP = minP + Math.max(Math.abs(minP) * 1e-4, 1e-8)
+        if (maxP <= minP) maxP = minP + max(abs(minP) * 1e-4, 1e-8)
         val padP = (maxP - minP) * 0.08
         minP -= padP
         maxP += padP
         val priceRange = (maxP - minP).coerceAtLeast(1e-12)
 
-        // ---- 成交量范围 ----
-        var maxV = 0.0
-        for (c in sub) if (c.vol > maxV) maxV = c.vol
-        if (maxV <= 0.0) maxV = 1.0
-
-        // ---- 分隔线（价格区 / 成交量区）----
-        canvas.drawLine(paddingLeft.toFloat(), volTop, paddingLeft + chartW, volTop, gridPaint)
-
-        // ---- 网格 + 价格刻度（右轴）----
+        // ---- 2. 绘制主图网格与价格刻度 ----
         val labelDy = -(textPaint.ascent() + textPaint.descent()) / 2f
         for (g in 0..GRID_LINES) {
             val frac = g.toFloat() / GRID_LINES
@@ -392,20 +625,7 @@ class CandleChartView @JvmOverloads constructor(
         val cw = chartW / n
         val bodyW = (cw * 0.7f).coerceAtLeast(1f)
 
-        // ---- 成交量柱 ----
-        for (i in sub.indices) {
-            val c = sub[i]
-            val x = paddingLeft + cw * i + cw / 2f
-            val up = c.close >= c.open
-            val hFrac = (c.vol / maxV).toFloat().coerceIn(0f, 1f)
-            val vh = volH * 0.92f * hFrac
-            canvas.drawRect(
-                x - bodyW / 2f, volTop + volH - vh, x + bodyW / 2f, volTop + volH,
-                if (up) upPaint else downPaint
-            )
-        }
-
-        // ---- 蜡烛 ----
+        // ---- 3. 绘制主图蜡烛 ----
         for (i in sub.indices) {
             val c = sub[i]
             val x = paddingLeft + cw * i + cw / 2f
@@ -417,22 +637,50 @@ class CandleChartView @JvmOverloads constructor(
                 if (up) upStroke else downStroke
             )
 
-            // 实体（等价开收时至少留 1px 高，保证可见）
+            // 实体
             val yOpen = yOfPrice(c.open, minP, priceRange)
             val yClose = yOfPrice(c.close, minP, priceRange)
-            val top = Math.min(yOpen, yClose)
-            val bot = Math.max(yOpen, yClose).coerceAtLeast(top + 1f)
+            val top = min(yOpen, yClose)
+            val bot = max(yOpen, yClose).coerceAtLeast(top + 1f)
             canvas.drawRect(
                 x - bodyW / 2f, top, x + bodyW / 2f, bot, if (up) upPaint else downPaint
             )
         }
 
-        // ---- MA 折线 ----
-        drawMa(canvas, ma5, leftIdx, rightIdx, cw, minP, priceRange, ma5Paint)
-        drawMa(canvas, ma10, leftIdx, rightIdx, cw, minP, priceRange, ma10Paint)
-        drawMa(canvas, ma20, leftIdx, rightIdx, cw, minP, priceRange, ma20Paint)
+        // ---- 4. 绘制主图 MA 折线 ----
+        if (showMa1) drawLineSeries(canvas, ma1, leftIdx, rightIdx, cw, minP, priceRange, ma1Paint)
+        if (showMa2) drawLineSeries(canvas, ma2, leftIdx, rightIdx, cw, minP, priceRange, ma2Paint)
+        if (showMa3) drawLineSeries(canvas, ma3, leftIdx, rightIdx, cw, minP, priceRange, ma3Paint)
 
-        // ---- 最新价虚线 + 右轴标签 ----
+        // ---- 5. 绘制主图 BOLL 轨道线 ----
+        if (showBoll) {
+            bollResult?.let { boll ->
+                drawLineSeries(canvas, boll.up, leftIdx, rightIdx, cw, minP, priceRange, bollUpPaint)
+                drawLineSeries(canvas, boll.mid, leftIdx, rightIdx, cw, minP, priceRange, ma1Paint)
+                drawLineSeries(canvas, boll.dn, leftIdx, rightIdx, cw, minP, priceRange, bollDnPaint)
+            }
+        }
+
+        // ---- 5.2 绘制主图 TURTLE 海龟通道 ----
+        if (showTurtle) {
+            turtleResult?.let { t ->
+                drawTurtleChannel(canvas, t, leftIdx, rightIdx, cw, minP, priceRange)
+            }
+        }
+
+        // ---- 6. 绘制副图指标 ----
+        if (subIndicatorType != "OFF" && volH > 0f) {
+            // 分隔线
+            canvas.drawLine(paddingLeft.toFloat(), volTop, paddingLeft + chartW, volTop, gridPaint)
+            when (subIndicatorType) {
+                "VOL" -> drawSubVol(canvas, sub, cw, bodyW)
+                "MACD" -> drawSubMacd(canvas, leftIdx, rightIdx, cw, bodyW)
+                "RSI" -> drawSubRsi(canvas, leftIdx, rightIdx, cw)
+                "KDJ" -> drawSubKdj(canvas, leftIdx, rightIdx, cw)
+            }
+        }
+
+        // ---- 7. 最新价虚线 + 右轴标签 ----
         val lastClose = candles[candles.size - 1].close
         val yLast = yOfPrice(lastClose, minP, priceRange)
         if (yLast >= paddingTop && yLast <= paddingTop + priceH) {
@@ -440,7 +688,7 @@ class CandleChartView @JvmOverloads constructor(
             drawAxisTag(canvas, Fmt.price(lastClose), yLast, tagPaint, tagTextPaint)
         }
 
-        // ---- 时间轴 ----
+        // ---- 8. 时间轴 ----
         val timeDy = paddingTop + priceH + volH + axisH - 3f * density
         for (t in 0 until TIME_TICKS) {
             val i = if (TIME_TICKS == 1) 0 else (n - 1) * t / (TIME_TICKS - 1)
@@ -449,19 +697,208 @@ class CandleChartView @JvmOverloads constructor(
             canvas.drawText(timeFmt.format(Date(sub[i].ts)), cx, timeDy, timePaint)
         }
 
-        // ---- 十字光标 ----
+        // ---- 9. 十字光标 ----
         if (crossIndex in leftIdx..rightIdx && crossY >= 0f) {
             val x = paddingLeft + cw * (crossIndex - leftIdx) + cw / 2f
-            canvas.drawLine(x, paddingTop.toFloat(), x, volTop + volH, crossPaint)
+            val bottomY = if (subIndicatorType != "OFF" && volH > 0f) volTop + volH else paddingTop + priceH
+            canvas.drawLine(x, paddingTop.toFloat(), x, bottomY, crossPaint)
             canvas.drawLine(paddingLeft.toFloat(), crossY, paddingLeft + chartW, crossY, crossPaint)
+
+            // 焦点圆点（金色实心 + 高亮外圈）
+            canvas.drawCircle(x, crossY, 3.5f * density, crossDotPaint)
+            canvas.drawCircle(x, crossY, 3.5f * density, crossDotStroke)
+
+            // 右侧价格轴高亮标签
             drawAxisTag(
                 canvas, Fmt.price(priceAtY(crossY, minP, priceRange)), crossY,
                 crossLabelBg, crossTextPaint
             )
+
+            // 底部时间轴高亮标签
+            val timeStr = timeFmt.format(Date(candles[crossIndex].ts))
+            drawTimeAxisTag(canvas, timeStr, x)
         }
     }
 
-    /** 在右侧价格轴上绘制一枚价格标签 */
+    private fun drawTimeAxisTag(canvas: Canvas, text: String, x: Float) {
+        val tagW = crossTextPaint.measureText(text) + 8f * density
+        val tagH = (crossTextPaint.descent() - crossTextPaint.ascent()) + 4f * density
+        val top = paddingTop + priceH + volH + 2f * density
+        val left = (x - tagW / 2f).coerceIn(paddingLeft.toFloat(), paddingLeft + chartW - tagW)
+        canvas.drawRoundRect(
+            RectF(left, top, left + tagW, top + tagH),
+            3f * density, 3f * density, crossLabelBg
+        )
+        canvas.drawText(
+            text, left + 4f * density,
+            top + tagH / 2f - (crossTextPaint.ascent() + crossTextPaint.descent()) / 2f,
+            crossTextPaint
+        )
+    }
+
+    // ---------- 副图绘制实现 ----------
+
+    private fun drawSubVol(canvas: Canvas, sub: List<Candle>, cw: Float, bodyW: Float) {
+        var maxV = 0.0
+        for (c in sub) if (c.vol > maxV) maxV = c.vol
+        if (maxV <= 0.0) maxV = 1.0
+
+        for (i in sub.indices) {
+            val c = sub[i]
+            val x = paddingLeft + cw * i + cw / 2f
+            val up = c.close >= c.open
+            val hFrac = (c.vol / maxV).toFloat().coerceIn(0f, 1f)
+            val vh = volH * 0.92f * hFrac
+            canvas.drawRect(
+                x - bodyW / 2f, volTop + volH - vh, x + bodyW / 2f, volTop + volH,
+                if (up) upPaint else downPaint
+            )
+        }
+        val labelDy = -(textPaint.ascent() + textPaint.descent()) / 2f
+        canvas.drawText(Fmt.vol(maxV), paddingLeft + chartW + 4f * density, volTop + 10f * density + labelDy, textPaint)
+    }
+
+    private fun drawSubMacd(canvas: Canvas, leftIdx: Int, rightIdx: Int, cw: Float, bodyW: Float) {
+        val macd = macdResult ?: return
+        var maxAbs = 0.0001
+        for (i in leftIdx..rightIdx) {
+            if (i < macd.dif.size) {
+                maxAbs = max(maxAbs, abs(macd.dif[i].toDouble()))
+                maxAbs = max(maxAbs, abs(macd.dea[i].toDouble()))
+                maxAbs = max(maxAbs, abs(macd.macd[i].toDouble()))
+            }
+        }
+        val zeroY = volTop + volH / 2f
+        // 0 轴基准线
+        canvas.drawLine(paddingLeft.toFloat(), zeroY, paddingLeft + chartW, zeroY, subGridPaint)
+
+        val halfH = volH * 0.45f
+        for (i in leftIdx..rightIdx) {
+            if (i < macd.macd.size) {
+                val x = paddingLeft + cw * (i - leftIdx) + cw / 2f
+                val v = macd.macd[i]
+                val bh = (abs(v) / maxAbs).toFloat() * halfH
+                if (v >= 0f) {
+                    canvas.drawRect(x - bodyW / 2f, zeroY - bh, x + bodyW / 2f, zeroY, upPaint)
+                } else {
+                    canvas.drawRect(x - bodyW / 2f, zeroY, x + bodyW / 2f, zeroY + bh, downPaint)
+                }
+            }
+        }
+
+        // DIF & DEA 折线
+        drawSubSeries(canvas, macd.dif, leftIdx, rightIdx, cw, -maxAbs, maxAbs * 2.0, difPaint)
+        drawSubSeries(canvas, macd.dea, leftIdx, rightIdx, cw, -maxAbs, maxAbs * 2.0, deaPaint)
+    }
+
+    private fun drawSubRsi(canvas: Canvas, leftIdx: Int, rightIdx: Int, cw: Float) {
+        // 30 / 70 参考线
+        val y30 = volTop + volH * (1f - 0.3f)
+        val y70 = volTop + volH * (1f - 0.7f)
+        canvas.drawLine(paddingLeft.toFloat(), y30, paddingLeft + chartW, y30, subGridPaint)
+        canvas.drawLine(paddingLeft.toFloat(), y70, paddingLeft + chartW, y70, subGridPaint)
+
+        val labelDy = -(textPaint.ascent() + textPaint.descent()) / 2f
+        canvas.drawText("70", paddingLeft + chartW + 4f * density, y70 + labelDy, textPaint)
+        canvas.drawText("30", paddingLeft + chartW + 4f * density, y30 + labelDy, textPaint)
+
+        drawSubSeries(canvas, rsi1, leftIdx, rightIdx, cw, 0.0, 100.0, rsi1Paint)
+        drawSubSeries(canvas, rsi2, leftIdx, rightIdx, cw, 0.0, 100.0, rsi2Paint)
+        drawSubSeries(canvas, rsi3, leftIdx, rightIdx, cw, 0.0, 100.0, rsi3Paint)
+    }
+
+    private fun drawSubKdj(canvas: Canvas, leftIdx: Int, rightIdx: Int, cw: Float) {
+        val kdj = kdjResult ?: return
+        val y20 = volTop + volH * (1f - 0.2f)
+        val y80 = volTop + volH * (1f - 0.8f)
+        canvas.drawLine(paddingLeft.toFloat(), y20, paddingLeft + chartW, y20, subGridPaint)
+        canvas.drawLine(paddingLeft.toFloat(), y80, paddingLeft + chartW, y80, subGridPaint)
+
+        val labelDy = -(textPaint.ascent() + textPaint.descent()) / 2f
+        canvas.drawText("80", paddingLeft + chartW + 4f * density, y80 + labelDy, textPaint)
+        canvas.drawText("20", paddingLeft + chartW + 4f * density, y20 + labelDy, textPaint)
+
+        drawSubSeries(canvas, kdj.k, leftIdx, rightIdx, cw, 0.0, 100.0, kdjKPaint)
+        drawSubSeries(canvas, kdj.d, leftIdx, rightIdx, cw, 0.0, 100.0, kdjDPaint)
+        drawSubSeries(canvas, kdj.j, leftIdx, rightIdx, cw, 0.0, 100.0, kdjJPaint)
+    }
+
+    private fun drawSubSeries(
+        canvas: Canvas, data: FloatArray,
+        leftIdx: Int, rightIdx: Int, cw: Float,
+        minV: Double, range: Double, paint: Paint
+    ) {
+        linePath.reset()
+        var started = false
+        for (i in leftIdx..rightIdx) {
+            if (i >= data.size) continue
+            val v = data[i]
+            val x = paddingLeft + cw * (i - leftIdx) + cw / 2f
+            val frac = ((v - minV) / range).toFloat().coerceIn(0f, 1f)
+            val y = volTop + volH * (1f - frac)
+            if (started) linePath.lineTo(x, y) else { linePath.moveTo(x, y); started = true }
+        }
+        if (!linePath.isEmpty) canvas.drawPath(linePath, paint)
+    }
+
+    private fun drawLineSeries(
+        canvas: Canvas, data: FloatArray,
+        leftIdx: Int, rightIdx: Int, cw: Float,
+        minP: Double, range: Double, paint: Paint
+    ) {
+        linePath.reset()
+        var started = false
+        for (i in leftIdx..rightIdx) {
+            val v = if (i < data.size) data[i] else 0f
+            if (v <= 0f) {
+                started = false
+                continue
+            }
+            val x = paddingLeft + cw * (i - leftIdx) + cw / 2f
+            val y = yOfPrice(v.toDouble(), minP, range)
+            if (started) linePath.lineTo(x, y) else { linePath.moveTo(x, y); started = true }
+        }
+        if (!linePath.isEmpty) canvas.drawPath(linePath, paint)
+    }
+
+    private fun drawTurtleChannel(
+        canvas: Canvas, t: Indicators.TurtleResult,
+        leftIdx: Int, rightIdx: Int, cw: Float,
+        minP: Double, range: Double
+    ) {
+        // 绘制通道背景填充
+        linePath.reset()
+        var hasFill = false
+        for (i in leftIdx..rightIdx) {
+            if (i < t.upper.size && t.upper[i] > 0f && t.lower[i] > 0f) {
+                val x = paddingLeft + cw * (i - leftIdx) + cw / 2f
+                val yUp = yOfPrice(t.upper[i].toDouble(), minP, range)
+                if (!hasFill) {
+                    linePath.moveTo(x, yUp)
+                    hasFill = true
+                } else {
+                    linePath.lineTo(x, yUp)
+                }
+            }
+        }
+        if (hasFill) {
+            for (i in rightIdx downTo leftIdx) {
+                if (i < t.lower.size && t.lower[i] > 0f) {
+                    val x = paddingLeft + cw * (i - leftIdx) + cw / 2f
+                    val yDn = yOfPrice(t.lower[i].toDouble(), minP, range)
+                    linePath.lineTo(x, yDn)
+                }
+            }
+            linePath.close()
+            canvas.drawPath(linePath, turtleFillPaint)
+        }
+
+        // 绘制进场上轨（绿）、进场下轨（红）与多头离场线（黄虚线）
+        drawLineSeries(canvas, t.upper, leftIdx, rightIdx, cw, minP, range, turtleUpPaint)
+        drawLineSeries(canvas, t.lower, leftIdx, rightIdx, cw, minP, range, turtleDnPaint)
+        drawLineSeries(canvas, t.exitLong, leftIdx, rightIdx, cw, minP, range, turtleExitPaint)
+    }
+
     private fun drawAxisTag(canvas: Canvas, text: String, y: Float, bg: Paint, fg: Paint) {
         val half = (fg.descent() - fg.ascent()) / 2f + 2f * density
         val top = (y - half).coerceIn(paddingTop.toFloat(), paddingTop + priceH - half * 2f)
@@ -474,30 +911,50 @@ class CandleChartView @JvmOverloads constructor(
         canvas.drawText(text, left + 4f * density, top + half - (fg.ascent() + fg.descent()) / 2f, fg)
     }
 
-    private fun drawMa(
-        canvas: Canvas, ma: FloatArray,
-        leftIdx: Int, rightIdx: Int, cw: Float,
-        minP: Double, range: Double, paint: Paint
-    ) {
-        maPath.reset()
-        var started = false
-        for (i in leftIdx..rightIdx) {
-            val v = if (i < ma.size) ma[i] else 0f
-            if (v <= 0f) {
-                // 未定义区：断开折线
-                started = false
-                continue
-            }
-            val x = paddingLeft + cw * (i - leftIdx) + cw / 2f
-            val y = yOfPrice(v.toDouble(), minP, range)
-            if (started) maPath.lineTo(x, y) else { maPath.moveTo(x, y); started = true }
-        }
-        if (!maPath.isEmpty) canvas.drawPath(maPath, paint)
+    // ---------- 工具与指标重算 ----------
+
+    private fun computeAllIndicators() {
+        if (candles.isEmpty()) return
+        // MA
+        val p1 = Prefs.getMa1Period(context)
+        val p2 = Prefs.getMa2Period(context)
+        val p3 = Prefs.getMa3Period(context)
+        ma1 = Indicators.computeMa(candles, p1)
+        ma2 = Indicators.computeMa(candles, p2)
+        ma3 = Indicators.computeMa(candles, p3)
+
+        // BOLL
+        val bN = Prefs.getBollN(context)
+        val bK = Prefs.getBollK(context).toDouble()
+        bollResult = Indicators.computeBoll(candles, bN, bK)
+
+        // TURTLE
+        val tEntry = Prefs.getTurtleEntry(context)
+        val tExit = Prefs.getTurtleExit(context)
+        val tAtr = Prefs.getTurtleAtr(context)
+        turtleResult = Indicators.computeTurtle(candles, tEntry, tExit, tAtr)
+
+        // MACD
+        val mFast = Prefs.getMacdFast(context)
+        val mSlow = Prefs.getMacdSlow(context)
+        val mSig = Prefs.getMacdSignal(context)
+        macdResult = Indicators.computeMacd(candles, mFast, mSlow, mSig)
+
+        // RSI
+        val r1 = Prefs.getRsi1Period(context)
+        val r2 = Prefs.getRsi2Period(context)
+        val r3 = Prefs.getRsi3Period(context)
+        rsi1 = Indicators.computeRsi(candles, r1)
+        rsi2 = Indicators.computeRsi(candles, r2)
+        rsi3 = Indicators.computeRsi(candles, r3)
+
+        // KDJ
+        val kN = Prefs.getKdjN(context)
+        val kM1 = Prefs.getKdjM1(context)
+        val kM2 = Prefs.getKdjM2(context)
+        kdjResult = Indicators.computeKdj(candles, kN, kM1, kM2)
     }
 
-    // ---------- 工具 ----------
-
-    /** 当前可见的蜡烛下标闭区间；无数据或未布局时返回 null */
     private fun visibleRange(): IntRange? {
         if (candles.isEmpty() || chartW <= 0f) return null
         val n = visibleCount.toInt().coerceIn(1, candles.size)
@@ -523,29 +980,10 @@ class CandleChartView @JvmOverloads constructor(
         return minP + range * frac.toDouble()
     }
 
-    /**
-     * 滑动窗口计算 MA5/10/20。
-     * 未定义区（数据不足 period 根）保持 0，绘制与价格轴计算时按 0 过滤。
-     */
-    private fun computeMa() {
-        val n = candles.size
-        ma5 = FloatArray(n); ma10 = FloatArray(n); ma20 = FloatArray(n)
-        var s5 = 0.0; var s10 = 0.0; var s20 = 0.0
-        for (i in 0 until n) {
-            val c = candles[i].close
-            s5 += c; s10 += c; s20 += c
-            if (i >= 5) s5 -= candles[i - 5].close
-            if (i >= 10) s10 -= candles[i - 10].close
-            if (i >= 20) s20 -= candles[i - 20].close
-            if (i >= 4) ma5[i] = (s5 / 5.0).toFloat()
-            if (i >= 9) ma10[i] = (s10 / 10.0).toFloat()
-            if (i >= 19) ma20[i] = (s20 / 20.0).toFloat()
-        }
-    }
-
     companion object {
         private const val MIN_VISIBLE = 20
         private const val GRID_LINES = 5
         private const val TIME_TICKS = 4
     }
 }
+

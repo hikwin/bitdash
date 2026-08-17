@@ -136,14 +136,15 @@
             </RadioGroup>
         </HorizontalScrollView>
 
-        <!-- 光标详情与 MA 图例叠放，不放长提示文字，单行紧凑 -->
+        <!-- 指标控制栏与光标详情叠放 -->
         <FrameLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:layout_marginStart="8dp">
+            android:layout_marginStart="6dp">
 
             <LinearLayout
+                android:id="@+id/layoutIndicators"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:layout_gravity="end|center_vertical"
@@ -151,30 +152,131 @@
                 android:orientation="horizontal">
 
                 <TextView
-                    android:id="@+id/tvMa5"
+                    android:id="@+id/tvMa1"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
+                    android:layout_height="match_parent"
+                    android:gravity="center_vertical"
+                    android:paddingStart="3dp"
+                    android:paddingEnd="3dp"
                     android:text="MA5"
                     android:textColor="@color/ma5"
-                    android:textSize="10sp" />
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
 
                 <TextView
-                    android:id="@+id/tvMa10"
+                    android:id="@+id/tvMa2"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
+                    android:layout_height="match_parent"
+                    android:gravity="center_vertical"
+                    android:paddingStart="3dp"
+                    android:paddingEnd="3dp"
                     android:text="MA10"
                     android:textColor="@color/ma10"
-                    android:textSize="10sp" />
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
 
                 <TextView
-                    android:id="@+id/tvMa20"
+                    android:id="@+id/tvMa3"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
+                    android:layout_height="match_parent"
+                    android:gravity="center_vertical"
+                    android:paddingStart="3dp"
+                    android:paddingEnd="3dp"
                     android:text="MA20"
                     android:textColor="@color/ma20"
-                    android:textSize="10sp" />
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvBoll"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:gravity="center_vertical"
+                    android:paddingStart="3dp"
+                    android:paddingEnd="3dp"
+                    android:text="BOLL"
+                    android:textColor="@color/boll_up"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvTurtle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:gravity="center_vertical"
+                    android:paddingStart="3dp"
+                    android:paddingEnd="3dp"
+                    android:text="TURTLE"
+                    android:textColor="@color/turtle_up"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="10dp"
+                    android:layout_marginStart="2dp"
+                    android:layout_marginEnd="2dp"
+                    android:background="@color/border" />
+
+                <TextView
+                    android:id="@+id/tvVolInd"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:gravity="center_vertical"
+                    android:paddingStart="3dp"
+                    android:paddingEnd="3dp"
+                    android:text="VOL"
+                    android:textColor="@color/text_main"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvMacd"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:gravity="center_vertical"
+                    android:paddingStart="3dp"
+                    android:paddingEnd="3dp"
+                    android:text="MACD"
+                    android:textColor="@color/text_main"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvRsi"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:gravity="center_vertical"
+                    android:paddingStart="3dp"
+                    android:paddingEnd="3dp"
+                    android:text="RSI"
+                    android:textColor="@color/text_main"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvKdj"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:gravity="center_vertical"
+                    android:paddingStart="3dp"
+                    android:paddingEnd="3dp"
+                    android:text="KDJ"
+                    android:textColor="@color/text_main"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+
+                <!-- 最右侧设置齿轮按钮 -->
+                <ImageButton
+                    android:id="@+id/btnIndicatorSettings"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:layout_marginStart="2dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="指标参数设置"
+                    android:padding="2dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_settings" />
             </LinearLayout>
 
             <TextView

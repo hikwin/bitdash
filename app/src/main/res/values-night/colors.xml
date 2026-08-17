@@ -21,10 +21,16 @@
     <color name="down">#22C55E</color>
     <color name="down_bg">#1A22C55E</color>
 
-    <!-- 均线 -->
+    <!-- 均线与指标 -->
     <color name="ma5">#F59E0B</color>
     <color name="ma10">#60A5FA</color>
     <color name="ma20">#A78BFA</color>
+    <color name="boll_up">#F472B6</color>
+    <color name="boll_dn">#22D3EE</color>
+    <color name="turtle_up">#34D399</color>
+    <color name="turtle_dn">#FB7185</color>
+    <color name="turtle_exit">#FBBF24</color>
+    <color name="turtle_fill">#1234D399</color>
 
     <color name="white">#FFFFFF</color>
     <color name="black">#000000</color>

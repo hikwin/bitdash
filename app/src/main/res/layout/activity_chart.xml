@@ -147,57 +147,152 @@
         </RadioGroup>
     </HorizontalScrollView>
 
-    <!-- MA 图例 与 光标详情（叠放，消除空白占位） -->
+    <!-- 指标控制栏 与 光标详情（叠放，消除空白占位） -->
     <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="22dp"
-        android:paddingStart="12dp"
-        android:paddingEnd="12dp">
+        android:layout_height="28dp"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp">
 
         <LinearLayout
+            android:id="@+id/layoutIndicators"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
+            <!-- 主图指标 -->
             <TextView
-                android:id="@+id/tvMa5"
+                android:id="@+id/tvMa1"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
                 android:text="MA5"
                 android:textColor="@color/ma5"
-                android:textSize="11sp" />
+                android:textSize="11sp"
+                android:textStyle="bold" />
 
             <TextView
-                android:id="@+id/tvMa10"
+                android:id="@+id/tvMa2"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="10dp"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
                 android:text="MA10"
                 android:textColor="@color/ma10"
-                android:textSize="11sp" />
+                android:textSize="11sp"
+                android:textStyle="bold" />
 
             <TextView
-                android:id="@+id/tvMa20"
+                android:id="@+id/tvMa3"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="10dp"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
                 android:text="MA20"
                 android:textColor="@color/ma20"
-                android:textSize="11sp" />
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvBoll"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                android:text="BOLL"
+                android:textColor="@color/boll_up"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvTurtle"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                android:text="TURTLE"
+                android:textColor="@color/turtle_up"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+            <View
+                android:layout_width="1dp"
+                android:layout_height="12dp"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp"
+                android:background="@color/border" />
+
+            <!-- 副图指标 -->
+            <TextView
+                android:id="@+id/tvVolInd"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                android:text="VOL"
+                android:textColor="@color/text_main"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvMacd"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                android:text="MACD"
+                android:textColor="@color/text_main"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvRsi"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                android:text="RSI"
+                android:textColor="@color/text_main"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvKdj"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                android:text="KDJ"
+                android:textColor="@color/text_main"
+                android:textSize="11sp"
+                android:textStyle="bold" />
 
             <Space
                 android:layout_width="0dp"
                 android:layout_height="1dp"
                 android:layout_weight="1" />
 
-            <TextView
-                android:id="@+id/tvHint"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/chart_hint"
-                android:textColor="@color/text_dim"
-                android:textSize="10sp" />
+            <!-- 最右侧设置齿轮按钮 -->
+            <ImageButton
+                android:id="@+id/btnIndicatorSettings"
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="指标参数设置"
+                android:padding="3dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_settings" />
         </LinearLayout>
 
         <TextView

@@ -49,9 +49,20 @@ class ChartActivity : BaseActivity() {
     private lateinit var low: TextView
     private lateinit var vol: TextView
     private var ohlcv: TextView? = null
-    private var hint: TextView? = null
     private lateinit var loading: TextView
     private lateinit var chart: CandleChartView
+
+    // 指标控制 View
+    private var tvMa1: TextView? = null
+    private var tvMa2: TextView? = null
+    private var tvMa3: TextView? = null
+    private var tvBoll: TextView? = null
+    private var tvTurtle: TextView? = null
+    private var tvVolInd: TextView? = null
+    private var tvMacd: TextView? = null
+    private var tvRsi: TextView? = null
+    private var tvKdj: TextView? = null
+    private var btnIndicatorSettings: ImageButton? = null
 
     private var symbol: String = DEFAULT_SYMBOL
     private var currentBar = Bar.M15
@@ -106,13 +117,25 @@ class ChartActivity : BaseActivity() {
         low = findViewById(R.id.tvLow)
         vol = findViewById(R.id.tvVol)
         ohlcv = findViewById(R.id.tvOhlcv)
-        hint = findViewById(R.id.tvHint)
         loading = findViewById(R.id.tvLoading)
         chart = findViewById(R.id.chart)
+
+        // 绑定指标控制栏 View
+        tvMa1 = findViewById(R.id.tvMa1)
+        tvMa2 = findViewById(R.id.tvMa2)
+        tvMa3 = findViewById(R.id.tvMa3)
+        tvBoll = findViewById(R.id.tvBoll)
+        tvTurtle = findViewById(R.id.tvTurtle)
+        tvVolInd = findViewById(R.id.tvVolInd)
+        tvMacd = findViewById(R.id.tvMacd)
+        tvRsi = findViewById(R.id.tvRsi)
+        tvKdj = findViewById(R.id.tvKdj)
+        btnIndicatorSettings = findViewById(R.id.btnIndicatorSettings)
 
         symbolView.text = symbol
 
         applyFontScale()
+        initIndicatorsUI()
 
         rt = RealtimeSession(
             ctx = this,
@@ -134,13 +157,11 @@ class ChartActivity : BaseActivity() {
             }
         }
 
-        // 十字光标回调 → 顶部显示该根 K 线的 OHLCV；隐藏时恢复手势提示
+        // 十字光标回调 → 顶部覆盖显示该根 K 线的 OHLCV；隐藏时恢复指标栏
         chart.onCrosshairChange = { c ->
             if (c == null) {
                 ohlcv?.visibility = View.INVISIBLE
-                hint?.visibility = View.VISIBLE
             } else {
-                hint?.visibility = View.INVISIBLE
                 ohlcv?.visibility = View.VISIBLE
                 ohlcv?.text = buildString {
                     append(timeLabel(c.ts))
@@ -150,7 +171,6 @@ class ChartActivity : BaseActivity() {
                     append("  收 ").append(Fmt.price(c.close))
                     append("  量 ").append(Fmt.vol(c.vol))
                 }
-                // 收盘价相对开盘价着色，和蜡烛配色保持一致
                 ohlcv?.setTextColor(Palette.byDelta(this, c.close - c.open))
             }
         }
@@ -192,7 +212,6 @@ class ChartActivity : BaseActivity() {
         val baseStat = if (isLand) 10f else 12f
         val baseTf = 11f
         val baseMa = if (isLand) 10f else 11f
-        val baseHint = 10f
         val baseOhlcv = if (isLand) 10f else 11f
         val baseLoading = 14f
 
@@ -211,10 +230,15 @@ class ChartActivity : BaseActivity() {
             }
         }
 
-        findViewById<TextView>(R.id.tvMa5)?.setTextSize(TypedValue.COMPLEX_UNIT_SP, baseMa * scale)
-        findViewById<TextView>(R.id.tvMa10)?.setTextSize(TypedValue.COMPLEX_UNIT_SP, baseMa * scale)
-        findViewById<TextView>(R.id.tvMa20)?.setTextSize(TypedValue.COMPLEX_UNIT_SP, baseMa * scale)
-        hint?.setTextSize(TypedValue.COMPLEX_UNIT_SP, baseHint * scale)
+        tvMa1?.setTextSize(TypedValue.COMPLEX_UNIT_SP, baseMa * scale)
+        tvMa2?.setTextSize(TypedValue.COMPLEX_UNIT_SP, baseMa * scale)
+        tvMa3?.setTextSize(TypedValue.COMPLEX_UNIT_SP, baseMa * scale)
+        tvBoll?.setTextSize(TypedValue.COMPLEX_UNIT_SP, baseMa * scale)
+        tvTurtle?.setTextSize(TypedValue.COMPLEX_UNIT_SP, baseMa * scale)
+        tvVolInd?.setTextSize(TypedValue.COMPLEX_UNIT_SP, baseMa * scale)
+        tvMacd?.setTextSize(TypedValue.COMPLEX_UNIT_SP, baseMa * scale)
+        tvRsi?.setTextSize(TypedValue.COMPLEX_UNIT_SP, baseMa * scale)
+        tvKdj?.setTextSize(TypedValue.COMPLEX_UNIT_SP, baseMa * scale)
         ohlcv?.setTextSize(TypedValue.COMPLEX_UNIT_SP, baseOhlcv * scale)
         loading.setTextSize(TypedValue.COMPLEX_UNIT_SP, baseLoading * scale)
 
@@ -414,6 +438,102 @@ class ChartActivity : BaseActivity() {
                 }
             }
         }
+    }
+
+    private fun initIndicatorsUI() {
+        updateIndicatorTabsUI()
+
+        tvMa1?.setOnClickListener {
+            val next = !Prefs.getShowMa1(this)
+            Prefs.setShowMa1(this, next)
+            updateIndicatorTabsUI()
+            chart.refreshIndicatorToggles()
+        }
+
+        tvMa2?.setOnClickListener {
+            val next = !Prefs.getShowMa2(this)
+            Prefs.setShowMa2(this, next)
+            updateIndicatorTabsUI()
+            chart.refreshIndicatorToggles()
+        }
+
+        tvMa3?.setOnClickListener {
+            val next = !Prefs.getShowMa3(this)
+            Prefs.setShowMa3(this, next)
+            updateIndicatorTabsUI()
+            chart.refreshIndicatorToggles()
+        }
+
+        tvBoll?.setOnClickListener {
+            val next = !Prefs.getShowBoll(this)
+            Prefs.setShowBoll(this, next)
+            updateIndicatorTabsUI()
+            chart.refreshIndicatorToggles()
+        }
+
+        tvTurtle?.setOnClickListener {
+            val next = !Prefs.getShowTurtle(this)
+            Prefs.setShowTurtle(this, next)
+            updateIndicatorTabsUI()
+            chart.refreshIndicatorToggles()
+        }
+
+        tvVolInd?.setOnClickListener {
+            val current = Prefs.getSubIndicator(this)
+            val next = if (current == "VOL") "OFF" else "VOL"
+            Prefs.setSubIndicator(this, next)
+            updateIndicatorTabsUI()
+            chart.refreshIndicatorToggles()
+        }
+
+        tvMacd?.setOnClickListener {
+            val current = Prefs.getSubIndicator(this)
+            val next = if (current == "MACD") "OFF" else "MACD"
+            Prefs.setSubIndicator(this, next)
+            updateIndicatorTabsUI()
+            chart.refreshIndicatorToggles()
+        }
+
+        tvRsi?.setOnClickListener {
+            val current = Prefs.getSubIndicator(this)
+            val next = if (current == "RSI") "OFF" else "RSI"
+            Prefs.setSubIndicator(this, next)
+            updateIndicatorTabsUI()
+            chart.refreshIndicatorToggles()
+        }
+
+        tvKdj?.setOnClickListener {
+            val current = Prefs.getSubIndicator(this)
+            val next = if (current == "KDJ") "OFF" else "KDJ"
+            Prefs.setSubIndicator(this, next)
+            updateIndicatorTabsUI()
+            chart.refreshIndicatorToggles()
+        }
+
+        btnIndicatorSettings?.setOnClickListener {
+            IndicatorSettingsDialog.show(this) {
+                updateIndicatorTabsUI()
+                chart.refreshIndicatorToggles()
+            }
+        }
+    }
+
+    private fun updateIndicatorTabsUI() {
+        tvMa1?.text = "MA${Prefs.getMa1Period(this)}"
+        tvMa2?.text = "MA${Prefs.getMa2Period(this)}"
+        tvMa3?.text = "MA${Prefs.getMa3Period(this)}"
+
+        tvMa1?.alpha = if (Prefs.getShowMa1(this)) 1.0f else 0.30f
+        tvMa2?.alpha = if (Prefs.getShowMa2(this)) 1.0f else 0.30f
+        tvMa3?.alpha = if (Prefs.getShowMa3(this)) 1.0f else 0.30f
+        tvBoll?.alpha = if (Prefs.getShowBoll(this)) 1.0f else 0.30f
+        tvTurtle?.alpha = if (Prefs.getShowTurtle(this)) 1.0f else 0.30f
+
+        val sub = Prefs.getSubIndicator(this)
+        tvVolInd?.alpha = if (sub == "VOL") 1.0f else 0.30f
+        tvMacd?.alpha = if (sub == "MACD") 1.0f else 0.30f
+        tvRsi?.alpha = if (sub == "RSI") 1.0f else 0.30f
+        tvKdj?.alpha = if (sub == "KDJ") 1.0f else 0.30f
     }
 
     private fun timeLabel(ts: Long): String =

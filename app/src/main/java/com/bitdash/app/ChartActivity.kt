@@ -7,6 +7,7 @@ import android.os.Looper
 import android.util.TypedValue
 import android.view.View
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.RadioButton
 import android.widget.RadioGroup
 import android.widget.TextView
@@ -43,6 +44,7 @@ import kotlinx.coroutines.withContext
 class ChartActivity : BaseActivity() {
 
     private lateinit var symbolView: TextView
+    private lateinit var btnStar: ImageView
     private lateinit var price: TextView
     private lateinit var change: TextView
     private lateinit var high: TextView
@@ -111,6 +113,7 @@ class ChartActivity : BaseActivity() {
         }
 
         symbolView = findViewById(R.id.tvSymbol)
+        btnStar = findViewById(R.id.btnStar)
         price = findViewById(R.id.tvPrice)
         change = findViewById(R.id.tvChange)
         high = findViewById(R.id.tvHigh)
@@ -133,6 +136,8 @@ class ChartActivity : BaseActivity() {
         btnIndicatorSettings = findViewById(R.id.btnIndicatorSettings)
 
         symbolView.text = symbol
+        btnStar.setOnClickListener { toggleWatch() }
+        updateStarStatus()
 
         applyFontScale()
         initIndicatorsUI()
@@ -196,10 +201,41 @@ class ChartActivity : BaseActivity() {
 
     override fun onResume() {
         super.onResume()
+        updateStarStatus()
         applyFontScale()
         chart.applyPalette()
         refreshAll(showLoading = chart.isEmptyData())
         applyRefreshStrategy()
+    }
+
+    private fun updateStarStatus() {
+        val inWatch = Prefs.getWatchlist(this).contains(symbol)
+        btnStar.setImageResource(if (inWatch) R.drawable.ic_star else R.drawable.ic_star_border)
+        btnStar.contentDescription = getString(if (inWatch) R.string.remove_watch else R.string.add_watch)
+    }
+
+    private fun toggleWatch() {
+        val watch = LinkedHashSet(Prefs.getWatchlist(this))
+        val added = if (watch.contains(symbol)) {
+            watch.remove(symbol)
+            false
+        } else {
+            watch.add(symbol)
+            true
+        }
+        val ordered = if (added) {
+            ArrayList<String>(watch.size).apply {
+                add(symbol)
+                watch.forEach { if (it != symbol) add(it) }
+            }
+        } else {
+            ArrayList(watch)
+        }
+        Prefs.saveWatchlist(this, ordered)
+        updateStarStatus()
+        Toast.makeText(
+            this, if (added) R.string.add_watch else R.string.remove_watch, Toast.LENGTH_SHORT
+        ).show()
     }
 
     private fun applyFontScale() {

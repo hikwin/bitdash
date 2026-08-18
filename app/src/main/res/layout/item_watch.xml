@@ -15,9 +15,11 @@
     <!-- 星标（仅搜索页显示） -->
     <ImageView
         android:id="@+id/tvStar"
-        android:layout_width="22dp"
-        android:layout_height="22dp"
-        android:layout_marginEnd="10dp"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:padding="5dp"
+        android:layout_marginEnd="6dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="@string/add_watch"
         android:visibility="gone"
         tools:src="@drawable/ic_star_border"

@@ -209,6 +209,9 @@ class CandleChartView @JvmOverloads constructor(
     private val crossTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         isFakeBoldText = true
     }
+    private val subLegendPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        isFakeBoldText = true
+    }
     private val emptyPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         textAlign = Paint.Align.CENTER
     }
@@ -221,6 +224,7 @@ class CandleChartView @JvmOverloads constructor(
     private var timeFmt = SimpleDateFormat("MM-dd HH:mm", Locale.getDefault())
 
     init {
+        subLegendPaint.textSize = 9.5f * density * fontScale
         updateThemeColors()
     }
 
@@ -288,6 +292,7 @@ class CandleChartView @JvmOverloads constructor(
         timePaint.textSize = 10f * density * fontScale
         tagTextPaint.textSize = 10f * density * fontScale
         crossTextPaint.textSize = 10f * density * fontScale
+        subLegendPaint.textSize = 9.5f * density * fontScale
         emptyPaint.textSize = 14f * density * fontScale
         updateThemeColors()
         recomputeDimensions(width, height)
@@ -549,14 +554,7 @@ class CandleChartView @JvmOverloads constructor(
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        val range = visibleRange()
-        if (range == null) {
-            canvas.drawText(
-                "暂无数据", width / 2f,
-                height / 2f - (emptyPaint.ascent() + emptyPaint.descent()) / 2f, emptyPaint
-            )
-            return
-        }
+        val range = visibleRange() ?: return
 
         val leftIdx = range.first
         val rightIdx = range.last
@@ -677,6 +675,11 @@ class CandleChartView @JvmOverloads constructor(
                 "MACD" -> drawSubMacd(canvas, leftIdx, rightIdx, cw, bodyW)
                 "RSI" -> drawSubRsi(canvas, leftIdx, rightIdx, cw)
                 "KDJ" -> drawSubKdj(canvas, leftIdx, rightIdx, cw)
+            }
+            // 绘制副图左上角指标参数及数值详情（十字线选中时为十字线所在K线，否则为最新K线）
+            val targetIdx = if (crossIndex in leftIdx..rightIdx) crossIndex else (candles.size - 1)
+            if (targetIdx in candles.indices) {
+                drawSubIndicatorLegend(canvas, targetIdx)
             }
         }
 
@@ -821,6 +824,144 @@ class CandleChartView @JvmOverloads constructor(
         drawSubSeries(canvas, kdj.k, leftIdx, rightIdx, cw, 0.0, 100.0, kdjKPaint)
         drawSubSeries(canvas, kdj.d, leftIdx, rightIdx, cw, 0.0, 100.0, kdjDPaint)
         drawSubSeries(canvas, kdj.j, leftIdx, rightIdx, cw, 0.0, 100.0, kdjJPaint)
+    }
+
+    // ---------- 副图左上角指标参数与详细数值绘制 (TradingView 风格) ----------
+
+    private fun drawSubIndicatorLegend(canvas: Canvas, targetIdx: Int) {
+        when (subIndicatorType) {
+            "MACD" -> drawSubMacdLegend(canvas, targetIdx)
+            "RSI" -> drawSubRsiLegend(canvas, targetIdx)
+            "KDJ" -> drawSubKdjLegend(canvas, targetIdx)
+            "VOL" -> drawSubVolLegend(canvas, targetIdx)
+        }
+    }
+
+    private fun drawLegendItem(
+        canvas: Canvas,
+        text: String,
+        color: Int,
+        curX: Float,
+        textY: Float,
+        maxRight: Float,
+        spacing: Float
+    ): Float {
+        subLegendPaint.color = color
+        val w = subLegendPaint.measureText(text)
+        if (curX + w > maxRight) return curX
+        canvas.drawText(text, curX, textY, subLegendPaint)
+        return curX + w + spacing
+    }
+
+    private fun drawSubMacdLegend(canvas: Canvas, targetIdx: Int) {
+        val macd = macdResult ?: return
+        val mFast = Prefs.getMacdFast(context)
+        val mSlow = Prefs.getMacdSlow(context)
+        val mSig = Prefs.getMacdSignal(context)
+
+        val difVal = macd.dif.getOrNull(targetIdx)
+        val deaVal = macd.dea.getOrNull(targetIdx)
+        val macdVal = macd.macd.getOrNull(targetIdx)
+
+        val textY = volTop + 2f * density - subLegendPaint.ascent()
+        var curX = paddingLeft + 4f * density
+        val maxRight = paddingLeft + chartW - 4f * density
+        val spacing = 7f * density
+
+        curX = drawLegendItem(canvas, "MACD($mFast,$mSlow,$mSig)", textPaint.color, curX, textY, maxRight, spacing)
+        if (difVal != null) {
+            curX = drawLegendItem(canvas, "DIF: ${formatIndicatorVal(difVal)}", difPaint.color, curX, textY, maxRight, spacing)
+        }
+        if (deaVal != null) {
+            curX = drawLegendItem(canvas, "DEA: ${formatIndicatorVal(deaVal)}", deaPaint.color, curX, textY, maxRight, spacing)
+        }
+        if (macdVal != null) {
+            val color = if (macdVal >= 0f) upPaint.color else downPaint.color
+            drawLegendItem(canvas, "MACD: ${formatIndicatorVal(macdVal)}", color, curX, textY, maxRight, spacing)
+        }
+    }
+
+    private fun drawSubRsiLegend(canvas: Canvas, targetIdx: Int) {
+        val r1Period = Prefs.getRsi1Period(context)
+        val r2Period = Prefs.getRsi2Period(context)
+        val r3Period = Prefs.getRsi3Period(context)
+
+        val r1 = rsi1.getOrNull(targetIdx)?.takeIf { it > 0f }
+        val r2 = rsi2.getOrNull(targetIdx)?.takeIf { it > 0f }
+        val r3 = rsi3.getOrNull(targetIdx)?.takeIf { it > 0f }
+
+        val textY = volTop + 2f * density - subLegendPaint.ascent()
+        var curX = paddingLeft + 4f * density
+        val maxRight = paddingLeft + chartW - 4f * density
+        val spacing = 7f * density
+
+        curX = drawLegendItem(canvas, "RSI($r1Period,$r2Period,$r3Period)", textPaint.color, curX, textY, maxRight, spacing)
+        if (r1 != null) {
+            curX = drawLegendItem(canvas, "RSI1: ${formatSubVal(r1)}", rsi1Paint.color, curX, textY, maxRight, spacing)
+        }
+        if (r2 != null) {
+            curX = drawLegendItem(canvas, "RSI2: ${formatSubVal(r2)}", rsi2Paint.color, curX, textY, maxRight, spacing)
+        }
+        if (r3 != null) {
+            drawLegendItem(canvas, "RSI3: ${formatSubVal(r3)}", rsi3Paint.color, curX, textY, maxRight, spacing)
+        }
+    }
+
+    private fun drawSubKdjLegend(canvas: Canvas, targetIdx: Int) {
+        val kdj = kdjResult ?: return
+        val kN = Prefs.getKdjN(context)
+        val kM1 = Prefs.getKdjM1(context)
+        val kM2 = Prefs.getKdjM2(context)
+
+        val k = kdj.k.getOrNull(targetIdx)
+        val d = kdj.d.getOrNull(targetIdx)
+        val j = kdj.j.getOrNull(targetIdx)
+
+        val textY = volTop + 2f * density - subLegendPaint.ascent()
+        var curX = paddingLeft + 4f * density
+        val maxRight = paddingLeft + chartW - 4f * density
+        val spacing = 7f * density
+
+        curX = drawLegendItem(canvas, "KDJ($kN,$kM1,$kM2)", textPaint.color, curX, textY, maxRight, spacing)
+        if (k != null) {
+            curX = drawLegendItem(canvas, "K: ${formatSubVal(k)}", kdjKPaint.color, curX, textY, maxRight, spacing)
+        }
+        if (d != null) {
+            curX = drawLegendItem(canvas, "D: ${formatSubVal(d)}", kdjDPaint.color, curX, textY, maxRight, spacing)
+        }
+        if (j != null) {
+            drawLegendItem(canvas, "J: ${formatSubVal(j)}", kdjJPaint.color, curX, textY, maxRight, spacing)
+        }
+    }
+
+    private fun drawSubVolLegend(canvas: Canvas, targetIdx: Int) {
+        val c = candles.getOrNull(targetIdx) ?: return
+        val textY = volTop + 2f * density - subLegendPaint.ascent()
+        var curX = paddingLeft + 4f * density
+        val maxRight = paddingLeft + chartW - 4f * density
+        val spacing = 7f * density
+
+        curX = drawLegendItem(canvas, "VOL", textPaint.color, curX, textY, maxRight, spacing)
+        val color = if (c.close >= c.open) upPaint.color else downPaint.color
+        drawLegendItem(canvas, "VOL: ${Fmt.vol(c.vol)}", color, curX, textY, maxRight, spacing)
+    }
+
+    private fun formatIndicatorVal(v: Float?): String {
+        if (v == null || v.isNaN()) return "—"
+        val absV = abs(v)
+        return when {
+            absV >= 1000f -> String.format(Locale.US, "%,.2f", v)
+            absV >= 1f -> String.format(Locale.US, "%.2f", v)
+            absV >= 0.01f -> String.format(Locale.US, "%.4f", v)
+            absV >= 0.0001f -> String.format(Locale.US, "%.6f", v)
+            absV > 0f -> String.format(Locale.US, "%.8f", v)
+            else -> "0.00"
+        }
+    }
+
+    private fun formatSubVal(v: Float?): String {
+        if (v == null || v.isNaN()) return "—"
+        return String.format(Locale.US, "%.2f", v)
     }
 
     private fun drawSubSeries(

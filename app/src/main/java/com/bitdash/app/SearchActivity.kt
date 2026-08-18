@@ -1,5 +1,6 @@
 package com.bitdash.app
 
+import android.content.Intent
 import android.content.res.Configuration
 import android.os.Bundle
 import android.text.Editable
@@ -199,11 +200,19 @@ class SearchActivity : BaseActivity() {
                 if (watch.contains(t.symbol)) R.drawable.ic_star else R.drawable.ic_star_border
             )
 
-            holder.itemView.setOnClickListener {
+            // 点击五角星：添加 / 移除自选
+            holder.star.setOnClickListener {
                 toggleWatch(t.symbol)
-                // 用 bindingAdapterPosition 而非闭包捕获的 position，避免列表变动后刷错行
                 val p = holder.bindingAdapterPosition
                 if (p != RecyclerView.NO_POSITION) notifyItemChanged(p)
+            }
+
+            // 点击列表项非五角星区域：进入该币种 K 线图表
+            holder.itemView.setOnClickListener {
+                startActivity(
+                    Intent(this@SearchActivity, ChartActivity::class.java)
+                        .putExtra(ChartActivity.EXTRA_SYMBOL, t.symbol)
+                )
             }
         }
 

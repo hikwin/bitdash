@@ -112,8 +112,8 @@ class MainActivity : BaseActivity() {
         findViewById<View>(R.id.btnAdd).setOnClickListener {
             startActivity(Intent(this, SearchActivity::class.java))
         }
-        // 顶部源标签 → 打开设置（源 / 刷新间隔 / 屏幕方向 / 涨跌配色）
-        findViewById<View>(R.id.btnSource).setOnClickListener { openSettings() }
+        // 顶部源标签 → 直接打开选择行情源弹窗
+        findViewById<View>(R.id.btnSource).setOnClickListener { openSourcePicker() }
         findViewById<View>(R.id.btnSettings).setOnClickListener { openSettings() }
 
         // 若用户开启了悬浮窗且拥有权限，自动恢复悬浮窗服务
@@ -238,6 +238,14 @@ class MainActivity : BaseActivity() {
             }
         })
         touchHelper.attachToRecyclerView(recycler)
+    }
+
+    private fun openSourcePicker() {
+        SourcePicker.show(this) {
+            updateSourceLabel()
+            applyRefreshStrategy()
+            loadPrices(showPull = true)
+        }
     }
 
     private fun openSettings() {

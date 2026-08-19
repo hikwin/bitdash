@@ -475,12 +475,13 @@ class CandleChartView @JvmOverloads constructor(
     }
 
     private fun updateCrosshair(x: Float, y: Float) {
-        val range = visibleRange() ?: return
-        val n = range.last - range.first + 1
-        val cw = chartW / n
+        if (candles.isEmpty() || chartW <= 0f) return
+        val cw = candleWidth()
         if (cw <= 0f) return
-        val idx = range.first + ((x - paddingLeft) / cw).toInt()
-        crossIndex = idx.coerceIn(range.first, range.last)
+        val range = visibleRange() ?: return
+        val idxFloat = (candles.size - 1 - scrollFromRight + 0.5f) - (paddingLeft + chartW - x) / cw
+        val idx = kotlin.math.round(idxFloat).toInt().coerceIn(range.first, range.last)
+        crossIndex = idx.coerceIn(0, candles.size - 1)
         crossY = y.coerceIn(paddingTop.toFloat(), paddingTop + priceH)
         onCrosshairChange?.invoke(candles.getOrNull(crossIndex))
         notifyCurrentIndicatorValues(crossIndex)
@@ -558,7 +559,6 @@ class CandleChartView @JvmOverloads constructor(
 
         val leftIdx = range.first
         val rightIdx = range.last
-        val n = rightIdx - leftIdx + 1
         val sub = candles.subList(leftIdx, rightIdx + 1)
 
         // ---- 1. 计算主图价格范围 ----
@@ -620,13 +620,13 @@ class CandleChartView @JvmOverloads constructor(
             )
         }
 
-        val cw = chartW / n
+        val cw = candleWidth()
         val bodyW = (cw * 0.7f).coerceAtLeast(1f)
 
         // ---- 3. 绘制主图蜡烛 ----
-        for (i in sub.indices) {
-            val c = sub[i]
-            val x = paddingLeft + cw * i + cw / 2f
+        for (i in leftIdx..rightIdx) {
+            val c = candles[i]
+            val x = xOfIndex(i.toFloat())
             val up = c.close >= c.open
 
             // 影线
@@ -671,7 +671,7 @@ class CandleChartView @JvmOverloads constructor(
             // 分隔线
             canvas.drawLine(paddingLeft.toFloat(), volTop, paddingLeft + chartW, volTop, gridPaint)
             when (subIndicatorType) {
-                "VOL" -> drawSubVol(canvas, sub, cw, bodyW)
+                "VOL" -> drawSubVol(canvas, leftIdx, rightIdx, cw, bodyW)
                 "MACD" -> drawSubMacd(canvas, leftIdx, rightIdx, cw, bodyW)
                 "RSI" -> drawSubRsi(canvas, leftIdx, rightIdx, cw)
                 "KDJ" -> drawSubKdj(canvas, leftIdx, rightIdx, cw)
@@ -693,16 +693,20 @@ class CandleChartView @JvmOverloads constructor(
 
         // ---- 8. 时间轴 ----
         val timeDy = paddingTop + priceH + volH + axisH - 3f * density
-        for (t in 0 until TIME_TICKS) {
-            val i = if (TIME_TICKS == 1) 0 else (n - 1) * t / (TIME_TICKS - 1)
-            val cx = (paddingLeft + cw * i + cw / 2f)
-                .coerceIn(paddingLeft + 24f * density, paddingLeft + chartW - 24f * density)
-            canvas.drawText(timeFmt.format(Date(sub[i].ts)), cx, timeDy, timePaint)
+        if (leftIdx < rightIdx) {
+            for (t in 0 until TIME_TICKS) {
+                val idx = leftIdx + (rightIdx - leftIdx) * t / (TIME_TICKS - 1)
+                if (idx in candles.indices) {
+                    val cx = xOfIndex(idx.toFloat())
+                        .coerceIn(paddingLeft + 24f * density, paddingLeft + chartW - 24f * density)
+                    canvas.drawText(timeFmt.format(Date(candles[idx].ts)), cx, timeDy, timePaint)
+                }
+            }
         }
 
         // ---- 9. 十字光标 ----
         if (crossIndex in leftIdx..rightIdx && crossY >= 0f) {
-            val x = paddingLeft + cw * (crossIndex - leftIdx) + cw / 2f
+            val x = xOfIndex(crossIndex.toFloat())
             val bottomY = if (subIndicatorType != "OFF" && volH > 0f) volTop + volH else paddingTop + priceH
             canvas.drawLine(x, paddingTop.toFloat(), x, bottomY, crossPaint)
             canvas.drawLine(paddingLeft.toFloat(), crossY, paddingLeft + chartW, crossY, crossPaint)
@@ -741,14 +745,17 @@ class CandleChartView @JvmOverloads constructor(
 
     // ---------- 副图绘制实现 ----------
 
-    private fun drawSubVol(canvas: Canvas, sub: List<Candle>, cw: Float, bodyW: Float) {
+    private fun drawSubVol(canvas: Canvas, leftIdx: Int, rightIdx: Int, cw: Float, bodyW: Float) {
         var maxV = 0.0
-        for (c in sub) if (c.vol > maxV) maxV = c.vol
+        for (i in leftIdx..rightIdx) {
+            val v = candles[i].vol
+            if (v > maxV) maxV = v
+        }
         if (maxV <= 0.0) maxV = 1.0
 
-        for (i in sub.indices) {
-            val c = sub[i]
-            val x = paddingLeft + cw * i + cw / 2f
+        for (i in leftIdx..rightIdx) {
+            val c = candles[i]
+            val x = xOfIndex(i.toFloat())
             val up = c.close >= c.open
             val hFrac = (c.vol / maxV).toFloat().coerceIn(0f, 1f)
             val vh = volH * 0.92f * hFrac
@@ -778,7 +785,7 @@ class CandleChartView @JvmOverloads constructor(
         val halfH = volH * 0.45f
         for (i in leftIdx..rightIdx) {
             if (i < macd.macd.size) {
-                val x = paddingLeft + cw * (i - leftIdx) + cw / 2f
+                val x = xOfIndex(i.toFloat())
                 val v = macd.macd[i]
                 val bh = (abs(v) / maxAbs).toFloat() * halfH
                 if (v >= 0f) {
@@ -974,7 +981,7 @@ class CandleChartView @JvmOverloads constructor(
         for (i in leftIdx..rightIdx) {
             if (i >= data.size) continue
             val v = data[i]
-            val x = paddingLeft + cw * (i - leftIdx) + cw / 2f
+            val x = xOfIndex(i.toFloat())
             val frac = ((v - minV) / range).toFloat().coerceIn(0f, 1f)
             val y = volTop + volH * (1f - frac)
             if (started) linePath.lineTo(x, y) else { linePath.moveTo(x, y); started = true }
@@ -995,7 +1002,7 @@ class CandleChartView @JvmOverloads constructor(
                 started = false
                 continue
             }
-            val x = paddingLeft + cw * (i - leftIdx) + cw / 2f
+            val x = xOfIndex(i.toFloat())
             val y = yOfPrice(v.toDouble(), minP, range)
             if (started) linePath.lineTo(x, y) else { linePath.moveTo(x, y); started = true }
         }
@@ -1012,7 +1019,7 @@ class CandleChartView @JvmOverloads constructor(
         var hasFill = false
         for (i in leftIdx..rightIdx) {
             if (i < t.upper.size && t.upper[i] > 0f && t.lower[i] > 0f) {
-                val x = paddingLeft + cw * (i - leftIdx) + cw / 2f
+                val x = xOfIndex(i.toFloat())
                 val yUp = yOfPrice(t.upper[i].toDouble(), minP, range)
                 if (!hasFill) {
                     linePath.moveTo(x, yUp)
@@ -1025,7 +1032,7 @@ class CandleChartView @JvmOverloads constructor(
         if (hasFill) {
             for (i in rightIdx downTo leftIdx) {
                 if (i < t.lower.size && t.lower[i] > 0f) {
-                    val x = paddingLeft + cw * (i - leftIdx) + cw / 2f
+                    val x = xOfIndex(i.toFloat())
                     val yDn = yOfPrice(t.lower[i].toDouble(), minP, range)
                     linePath.lineTo(x, yDn)
                 }
@@ -1096,12 +1103,21 @@ class CandleChartView @JvmOverloads constructor(
         kdjResult = Indicators.computeKdj(candles, kN, kM1, kM2)
     }
 
+    private fun xOfIndex(i: Float): Float {
+        val cw = candleWidth()
+        return paddingLeft + chartW - (candles.size - 1 - i - scrollFromRight + 0.5f) * cw
+    }
+
     private fun visibleRange(): IntRange? {
         if (candles.isEmpty() || chartW <= 0f) return null
-        val n = visibleCount.toInt().coerceIn(1, candles.size)
-        val right = (candles.size - 1 - scrollFromRight.toInt())
-            .coerceIn(n - 1, candles.size - 1)
-        return (right - n + 1)..right
+        val cw = candleWidth()
+        if (cw <= 0f) return null
+        val leftFloat = candles.size - 1 - visibleCount - scrollFromRight + 0.5f
+        val rightFloat = candles.size - 1 - scrollFromRight + 0.5f
+        val minIdx = (kotlin.math.floor(leftFloat).toInt() - 1).coerceIn(0, candles.size - 1)
+        val maxIdx = (kotlin.math.ceil(rightFloat).toInt() + 1).coerceIn(0, candles.size - 1)
+        if (minIdx > maxIdx) return null
+        return minIdx..maxIdx
     }
 
     private fun candleWidth(): Float =
@@ -1109,7 +1125,8 @@ class CandleChartView @JvmOverloads constructor(
 
     private fun clampScroll() {
         val maxScroll = (candles.size - visibleCount.toInt()).coerceAtLeast(0)
-        scrollFromRight = scrollFromRight.coerceIn(0f, maxScroll.toFloat())
+        val minScroll = -(visibleCount * MAX_RIGHT_OFFSET_RATIO)
+        scrollFromRight = scrollFromRight.coerceIn(minScroll, maxScroll.toFloat())
     }
 
     private fun yOfPrice(p: Double, minP: Double, range: Double): Float =
@@ -1125,6 +1142,7 @@ class CandleChartView @JvmOverloads constructor(
         private const val MIN_VISIBLE = 20
         private const val GRID_LINES = 5
         private const val TIME_TICKS = 4
+        private const val MAX_RIGHT_OFFSET_RATIO = 0.25f // 向左滑动时右侧最大留白比例（25% 图表宽度）
     }
 }
 

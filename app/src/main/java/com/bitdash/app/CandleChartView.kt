@@ -111,11 +111,26 @@ class CandleChartView @JvmOverloads constructor(
 
     // ---------- 画笔 ----------
     private val gridPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
         strokeWidth = 1f
     }
     private val subGridPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
         strokeWidth = 1f
         pathEffect = DashPathEffect(floatArrayOf(3f * density, 3f * density), 0f)
+    }
+    private val subRefLinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = 1f * density
+        pathEffect = DashPathEffect(floatArrayOf(4f * density, 3f * density), 0f)
+    }
+    private val subMidLinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = 0.8f * density
+        pathEffect = DashPathEffect(floatArrayOf(2f * density, 2.5f * density), 0f)
+    }
+    private val subZoneBandPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
     }
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val timePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -238,7 +253,10 @@ class CandleChartView @JvmOverloads constructor(
         val isNight = (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
 
         gridPaint.color = (border and 0x00FFFFFF) or 0x40000000
-        subGridPaint.color = (border and 0x00FFFFFF) or 0x30000000
+        subGridPaint.color = (border and 0x00FFFFFF) or 0x50000000
+        subRefLinePaint.color = if (isNight) 0x668B93A7.toInt() else 0x6664748B.toInt()
+        subMidLinePaint.color = if (isNight) 0x338B93A7.toInt() else 0x3364748B.toInt()
+        subZoneBandPaint.color = if (isNight) 0x0C8B93A7.toInt() else 0x0A1E293B.toInt()
         textPaint.color = textMuted
         timePaint.color = textMuted
         upPaint.color = Palette.up(context)
@@ -779,8 +797,10 @@ class CandleChartView @JvmOverloads constructor(
             }
         }
         val zeroY = volTop + volH / 2f
-        // 0 轴基准线
-        canvas.drawLine(paddingLeft.toFloat(), zeroY, paddingLeft + chartW, zeroY, subGridPaint)
+        // 0 轴基准线 + 右侧数值刻度
+        canvas.drawLine(paddingLeft.toFloat(), zeroY, paddingLeft + chartW, zeroY, subRefLinePaint)
+        val labelDy = -(textPaint.ascent() + textPaint.descent()) / 2f
+        canvas.drawText("0", paddingLeft + chartW + 4f * density, zeroY + labelDy, textPaint)
 
         val halfH = volH * 0.45f
         for (i in leftIdx..rightIdx) {
@@ -802,16 +822,27 @@ class CandleChartView @JvmOverloads constructor(
     }
 
     private fun drawSubRsi(canvas: Canvas, leftIdx: Int, rightIdx: Int, cw: Float) {
-        // 30 / 70 参考线
+        // 70 (超买) / 50 (中轴) / 30 (超卖) 参考线
         val y30 = volTop + volH * (1f - 0.3f)
+        val y50 = volTop + volH * (1f - 0.5f)
         val y70 = volTop + volH * (1f - 0.7f)
-        canvas.drawLine(paddingLeft.toFloat(), y30, paddingLeft + chartW, y30, subGridPaint)
-        canvas.drawLine(paddingLeft.toFloat(), y70, paddingLeft + chartW, y70, subGridPaint)
 
+        // 30~70 常态区间背景半透明填充带
+        canvas.drawRect(paddingLeft.toFloat(), y70, paddingLeft + chartW, y30, subZoneBandPaint)
+
+        // 70 / 50 / 30 辅助虚线
+        canvas.drawLine(paddingLeft.toFloat(), y70, paddingLeft + chartW, y70, subRefLinePaint)
+        canvas.drawLine(paddingLeft.toFloat(), y50, paddingLeft + chartW, y50, subMidLinePaint)
+        canvas.drawLine(paddingLeft.toFloat(), y30, paddingLeft + chartW, y30, subRefLinePaint)
+
+        // 右侧数值刻度标签 (70 / 50 / 30)
         val labelDy = -(textPaint.ascent() + textPaint.descent()) / 2f
-        canvas.drawText("70", paddingLeft + chartW + 4f * density, y70 + labelDy, textPaint)
-        canvas.drawText("30", paddingLeft + chartW + 4f * density, y30 + labelDy, textPaint)
+        val textX = paddingLeft + chartW + 4f * density
+        canvas.drawText("70", textX, y70 + labelDy, textPaint)
+        canvas.drawText("50", textX, y50 + labelDy, textPaint)
+        canvas.drawText("30", textX, y30 + labelDy, textPaint)
 
+        // 曲线
         drawSubSeries(canvas, rsi1, leftIdx, rightIdx, cw, 0.0, 100.0, rsi1Paint)
         drawSubSeries(canvas, rsi2, leftIdx, rightIdx, cw, 0.0, 100.0, rsi2Paint)
         drawSubSeries(canvas, rsi3, leftIdx, rightIdx, cw, 0.0, 100.0, rsi3Paint)
@@ -819,18 +850,33 @@ class CandleChartView @JvmOverloads constructor(
 
     private fun drawSubKdj(canvas: Canvas, leftIdx: Int, rightIdx: Int, cw: Float) {
         val kdj = kdjResult ?: return
+        // 80 (超买) / 50 (中轴) / 20 (超卖) 参考线
         val y20 = volTop + volH * (1f - 0.2f)
+        val y50 = volTop + volH * (1f - 0.5f)
         val y80 = volTop + volH * (1f - 0.8f)
-        canvas.drawLine(paddingLeft.toFloat(), y20, paddingLeft + chartW, y20, subGridPaint)
-        canvas.drawLine(paddingLeft.toFloat(), y80, paddingLeft + chartW, y80, subGridPaint)
 
+        // 20~80 常态区间背景半透明填充带
+        canvas.drawRect(paddingLeft.toFloat(), y80, paddingLeft + chartW, y20, subZoneBandPaint)
+
+        // 80 / 50 / 20 辅助虚线
+        canvas.drawLine(paddingLeft.toFloat(), y80, paddingLeft + chartW, y80, subRefLinePaint)
+        canvas.drawLine(paddingLeft.toFloat(), y50, paddingLeft + chartW, y50, subMidLinePaint)
+        canvas.drawLine(paddingLeft.toFloat(), y20, paddingLeft + chartW, y20, subRefLinePaint)
+
+        // 右侧数值刻度标签 (80 / 50 / 20)
         val labelDy = -(textPaint.ascent() + textPaint.descent()) / 2f
-        canvas.drawText("80", paddingLeft + chartW + 4f * density, y80 + labelDy, textPaint)
-        canvas.drawText("20", paddingLeft + chartW + 4f * density, y20 + labelDy, textPaint)
+        val textX = paddingLeft + chartW + 4f * density
+        canvas.drawText("80", textX, y80 + labelDy, textPaint)
+        canvas.drawText("50", textX, y50 + labelDy, textPaint)
+        canvas.drawText("20", textX, y20 + labelDy, textPaint)
 
+        // 曲线 (安全限制在副图裁剪区域内)
+        canvas.save()
+        canvas.clipRect(paddingLeft.toFloat(), volTop, paddingLeft + chartW, volTop + volH)
         drawSubSeries(canvas, kdj.k, leftIdx, rightIdx, cw, 0.0, 100.0, kdjKPaint)
         drawSubSeries(canvas, kdj.d, leftIdx, rightIdx, cw, 0.0, 100.0, kdjDPaint)
         drawSubSeries(canvas, kdj.j, leftIdx, rightIdx, cw, 0.0, 100.0, kdjJPaint)
+        canvas.restore()
     }
 
     // ---------- 副图左上角指标参数与详细数值绘制 (TradingView 风格) ----------

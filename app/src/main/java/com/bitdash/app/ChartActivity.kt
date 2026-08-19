@@ -6,8 +6,11 @@ import android.os.Handler
 import android.os.Looper
 import android.util.TypedValue
 import android.view.View
+import android.widget.HorizontalScrollView
 import android.widget.ImageButton
 import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.PopupMenu
 import android.widget.RadioButton
 import android.widget.RadioGroup
 import android.widget.TextView
@@ -180,23 +183,26 @@ class ChartActivity : BaseActivity() {
             }
         }
 
-        // 周期切换
+        // 周期切换与自适应布局
         val rg = findViewById<RadioGroup>(R.id.rgTimeframe)
-        rg.setOnCheckedChangeListener { _, checkedId ->
+        rg?.setOnCheckedChangeListener { _, checkedId ->
             val bar = BAR_OF_ID[checkedId] ?: return@setOnCheckedChangeListener
-            if (bar == currentBar) return@setOnCheckedChangeListener
-            currentBar = bar
-            chart.timePattern = timePattern(bar)
-            // 换周期等于换数据集，缩放/平移状态必须复位
-            chart.resetView()
-            // 丢掉旧周期的推送残留，并把订阅切到新周期
-            discardRealtimeCandles()
-            applyRefreshStrategy()
-            loadCandles(showLoading = true)
+            switchTimeframe(bar)
+        }
+
+        val btnDropdown = findViewById<TextView>(R.id.btnTimeframeDropdown)
+        btnDropdown?.setOnClickListener { showTimeframePopup(it) }
+
+        val barContainer = findViewById<LinearLayout>(R.id.layoutBarContainer)
+        barContainer?.addOnLayoutChangeListener { _, left, _, right, _, oldLeft, _, oldRight, _ ->
+            if ((right - left) != (oldRight - oldLeft)) {
+                checkAndAdjustTimeframeLayout()
+            }
         }
 
         chart.timePattern = timePattern(currentBar)
-        rg.check(ID_OF_BAR.getValue(currentBar))
+        updateTimeframeUI()
+        barContainer?.post { checkAndAdjustTimeframeLayout() }
     }
 
     override fun onResume() {
@@ -206,6 +212,7 @@ class ChartActivity : BaseActivity() {
         chart.applyPalette()
         refreshAll(showLoading = chart.isEmptyData())
         applyRefreshStrategy()
+        checkAndAdjustTimeframeLayout()
     }
 
     private fun updateStarStatus() {
@@ -278,7 +285,21 @@ class ChartActivity : BaseActivity() {
         ohlcv?.setTextSize(TypedValue.COMPLEX_UNIT_SP, baseOhlcv * scale)
         loading.setTextSize(TypedValue.COMPLEX_UNIT_SP, baseLoading * scale)
 
+        val btnDropdown = findViewById<TextView>(R.id.btnTimeframeDropdown)
+        btnDropdown?.setTextSize(TypedValue.COMPLEX_UNIT_SP, baseTf * scale)
+
         chart.applyFontScale(scale)
+        findViewById<View>(android.R.id.content)?.post {
+            checkAndAdjustTimeframeLayout()
+        }
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        applyFontScale()
+        findViewById<View>(android.R.id.content)?.post {
+            checkAndAdjustTimeframeLayout()
+        }
     }
 
     override fun onPause() {
@@ -575,6 +596,102 @@ class ChartActivity : BaseActivity() {
     private fun timeLabel(ts: Long): String =
         SimpleDateFormat(timePattern(currentBar), Locale.getDefault()).format(Date(ts))
 
+    private fun switchTimeframe(bar: Bar) {
+        if (bar == currentBar) return
+        currentBar = bar
+        chart.timePattern = timePattern(bar)
+        // 换周期等于换数据集，缩放/平移状态必须复位
+        chart.resetView()
+        // 丢掉旧周期的推送残留，并把订阅切到新周期
+        discardRealtimeCandles()
+        applyRefreshStrategy()
+        loadCandles(showLoading = true)
+        updateTimeframeUI()
+    }
+
+    private fun updateTimeframeUI() {
+        val rg = findViewById<RadioGroup>(R.id.rgTimeframe)
+        val targetId = ID_OF_BAR[currentBar]
+        if (targetId != null && rg != null && rg.checkedRadioButtonId != targetId) {
+            rg.check(targetId)
+        }
+        val btnDropdown = findViewById<TextView>(R.id.btnTimeframeDropdown)
+        if (btnDropdown != null) {
+            val resId = BAR_STR_RES[currentBar] ?: R.string.timeframe_15m
+            btnDropdown.text = "${getString(resId)} ▾"
+        }
+    }
+
+    private fun showTimeframePopup(anchor: View) {
+        val popup = PopupMenu(this, anchor)
+        val list = listOf(
+            Bar.M1, Bar.M5, Bar.M15, Bar.M30,
+            Bar.H1, Bar.H4, Bar.D1, Bar.W1, Bar.MON1
+        )
+        list.forEachIndexed { index, bar ->
+            val resId = BAR_STR_RES[bar] ?: R.string.timeframe_15m
+            val name = getString(resId)
+            val title = if (bar == currentBar) "$name  ✓" else name
+            popup.menu.add(0, index, index, title)
+        }
+        popup.setOnMenuItemClickListener { item ->
+            val bar = list.getOrNull(item.itemId)
+            if (bar != null) {
+                switchTimeframe(bar)
+            }
+            true
+        }
+        popup.show()
+    }
+
+    private fun checkAndAdjustTimeframeLayout() {
+        val isLand = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        val barContainer = findViewById<LinearLayout>(R.id.layoutBarContainer) ?: return
+        val scrollView = findViewById<HorizontalScrollView>(R.id.scrollTimeframe) ?: return
+        val rg = findViewById<RadioGroup>(R.id.rgTimeframe) ?: return
+        val btnDropdown = findViewById<TextView>(R.id.btnTimeframeDropdown) ?: return
+        val layoutInd = findViewById<LinearLayout>(R.id.layoutIndicators) ?: return
+
+        if (!isLand) {
+            scrollView.visibility = View.VISIBLE
+            btnDropdown.visibility = View.GONE
+            return
+        }
+
+        // 测量 RadioGroup 和 指标栏 的真实所需宽度
+        rg.measure(
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        )
+        layoutInd.measure(
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        )
+
+        val tfWidth = rg.measuredWidth
+        val indWidth = layoutInd.measuredWidth
+        val density = resources.displayMetrics.density
+        val extraMargin = (16f * density).toInt()
+        val totalNeeded = tfWidth + indWidth + extraMargin
+
+        val containerWidth = if (barContainer.width > 0) {
+            barContainer.width - barContainer.paddingStart - barContainer.paddingEnd
+        } else {
+            resources.displayMetrics.widthPixels - (16f * density).toInt()
+        }
+
+        if (containerWidth < totalNeeded) {
+            // 空间不足（低分辨率、小屏幕或大字号）：自动折叠为下拉框
+            if (scrollView.visibility != View.GONE) scrollView.visibility = View.GONE
+            if (btnDropdown.visibility != View.VISIBLE) btnDropdown.visibility = View.VISIBLE
+            updateTimeframeUI()
+        } else {
+            // 空间充足：展开全部单选按钮
+            if (scrollView.visibility != View.VISIBLE) scrollView.visibility = View.VISIBLE
+            if (btnDropdown.visibility != View.GONE) btnDropdown.visibility = View.GONE
+        }
+    }
+
     companion object {
         const val EXTRA_SYMBOL = "symbol"
 
@@ -595,6 +712,18 @@ class ChartActivity : BaseActivity() {
             R.id.tf1d to Bar.D1, R.id.tf1w to Bar.W1, R.id.tf1M to Bar.MON1
         )
         private val ID_OF_BAR = BAR_OF_ID.entries.associate { (id, bar) -> bar to id }
+
+        private val BAR_STR_RES = mapOf(
+            Bar.M1 to R.string.timeframe_1min,
+            Bar.M5 to R.string.timeframe_5m,
+            Bar.M15 to R.string.timeframe_15m,
+            Bar.M30 to R.string.timeframe_30m,
+            Bar.H1 to R.string.timeframe_1h,
+            Bar.H4 to R.string.timeframe_4h,
+            Bar.D1 to R.string.timeframe_1d,
+            Bar.W1 to R.string.timeframe_1w,
+            Bar.MON1 to R.string.timeframe_1m
+        )
 
         /** 周期 → 时间轴/详情栏的时间格式 */
         private fun timePattern(bar: Bar): String = when (bar) {

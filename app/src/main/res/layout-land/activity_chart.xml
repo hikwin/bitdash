@@ -113,8 +113,9 @@
         android:layout_height="1dp"
         android:background="@color/border" />
 
-    <!-- 第二行：周期切换条（横向滑动） + MA 图例 / 十字光标详情 (高度固定 28dp) -->
+    <!-- 第二行：周期切换条（或自适应折叠下拉框） + MA 图例 / 十字光标详情 (高度固定 28dp) -->
     <LinearLayout
+        android:id="@+id/layoutBarContainer"
         android:layout_width="match_parent"
         android:layout_height="28dp"
         android:gravity="center_vertical"
@@ -123,6 +124,7 @@
         android:paddingEnd="6dp">
 
         <HorizontalScrollView
+            android:id="@+id/scrollTimeframe"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:scrollbars="none">
@@ -146,8 +148,23 @@
             </RadioGroup>
         </HorizontalScrollView>
 
+        <TextView
+            android:id="@+id/btnTimeframeDropdown"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:background="?attr/selectableItemBackground"
+            android:textColor="@color/brand"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:visibility="gone"
+            tools:text="15分 ▾" />
+
         <!-- 指标控制栏与光标详情叠放 -->
         <FrameLayout
+            android:id="@+id/layoutRightFrame"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"

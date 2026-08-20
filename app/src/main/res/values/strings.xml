@@ -52,6 +52,7 @@
     <string name="settings_refresh">自动刷新：%1$s</string>
     <string name="settings_realtime">实时行情：%1$s</string>
     <string name="settings_orientation">屏幕方向：%1$s</string>
+    <string name="settings_keep_screen_on">屏幕常亮：%1$s</string>
     <string name="settings_theme_title">外观主题</string>
     <string name="theme_dark">夜间模式（深色，默认）</string>
     <string name="theme_light">日间模式（浅色/亮色）</string>
@@ -62,6 +63,11 @@
     <string name="settings_refresh_title">自动刷新间隔</string>
     <string name="settings_realtime_title">实时行情（WebSocket）</string>
     <string name="settings_orientation_title">屏幕方向</string>
+    <string name="settings_keep_screen_on_title">屏幕常亮</string>
+    <string name="keep_screen_on_off">关闭（跟随系统息屏，默认）</string>
+    <string name="keep_screen_on_on">开启（防止手机息屏）</string>
+    <string name="keep_screen_on_off_short">关闭</string>
+    <string name="keep_screen_on_on_short">开启</string>
     <string name="palette_red_up">红涨绿跌（国内常用）</string>
     <string name="palette_green_up">绿涨红跌（国际常用）</string>
     <string name="font_scale_hint">输入百分比（如 100、120、150）</string>

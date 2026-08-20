@@ -17,6 +17,7 @@ object Prefs {
     private const val KEY_PREFERRED = "preferred_id"
     private const val KEY_REFRESH_MS = "refresh_ms"
     private const val KEY_ORIENTATION = "orientation"
+    private const val KEY_KEEP_SCREEN_ON = "keep_screen_on"
     private const val KEY_THEME_MODE = "theme_mode"
     private const val KEY_UP_IS_GREEN = "up_is_green"
     private const val KEY_FONT_SCALE = "font_scale_pct"
@@ -154,6 +155,14 @@ object Prefs {
 
     /** 默认竖屏 */
     val DEFAULT_ORIENTATION = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+
+    // ---------- 屏幕常亮 ----------
+    fun getKeepScreenOn(ctx: Context): Boolean =
+        sp(ctx).getBoolean(KEY_KEEP_SCREEN_ON, false)
+
+    fun saveKeepScreenOn(ctx: Context, enabled: Boolean) {
+        sp(ctx).edit().putBoolean(KEY_KEEP_SCREEN_ON, enabled).apply()
+    }
 
     // ---------- 行情源 ----------
 

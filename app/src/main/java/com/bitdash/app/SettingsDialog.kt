@@ -72,6 +72,7 @@ object SettingsDialog {
             activity.getString(R.string.settings_refresh, refreshLabel(activity, Prefs.getRefreshMs(activity))),
             activity.getString(R.string.settings_realtime, rtLabel(activity, Prefs.getRtScope(activity))),
             activity.getString(R.string.settings_orientation, orientationLabel(activity, Prefs.getOrientation(activity))),
+            activity.getString(R.string.settings_keep_screen_on, keepScreenOnLabel(activity, Prefs.getKeepScreenOn(activity))),
             activity.getString(R.string.settings_floating, floatingLabel(activity))
         )
 
@@ -87,7 +88,8 @@ object SettingsDialog {
                     5 -> showRefreshPicker(activity, onChanged)
                     6 -> showRealtimePicker(activity, onChanged)
                     7 -> showOrientationPicker(activity, onChanged)
-                    8 -> showFloatingSettingsPicker(activity, onChanged)
+                    8 -> showKeepScreenOnPicker(activity, onChanged)
+                    9 -> showFloatingSettingsPicker(activity, onChanged)
                 }
             }
             .setNegativeButton(android.R.string.cancel, null)
@@ -374,6 +376,34 @@ object SettingsDialog {
             else -> R.string.orientation_0
         }
     )
+
+    // ---------- 屏幕常亮 ----------
+
+    private fun showKeepScreenOnPicker(activity: Activity, onChanged: () -> Unit) {
+        val current = Prefs.getKeepScreenOn(activity)
+        val options = arrayOf(false, true)
+        val labels = arrayOf(
+            activity.getString(R.string.keep_screen_on_off),
+            activity.getString(R.string.keep_screen_on_on)
+        )
+        val checked = if (current) 1 else 0
+
+        AlertDialog.Builder(activity)
+            .setTitle(R.string.settings_keep_screen_on_title)
+            .setSingleChoiceItems(labels, checked) { dialog, which ->
+                val enabled = options[which]
+                Prefs.saveKeepScreenOn(activity, enabled)
+                (activity as? BaseActivity)?.applyKeepScreenOn()
+                dialog.dismiss()
+                onChanged()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun keepScreenOnLabel(activity: Activity, enabled: Boolean): String =
+        if (enabled) activity.getString(R.string.keep_screen_on_on_short)
+        else activity.getString(R.string.keep_screen_on_off_short)
 
     // ---------- 行情源当前值 ----------
 

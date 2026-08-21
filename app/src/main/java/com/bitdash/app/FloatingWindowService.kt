@@ -842,6 +842,9 @@ class FloatingWindowService : Service() {
     }
 
     private fun updateCoinPrice(vh: CoinViewHolder, price: Double) {
+        if (price > 0.0) {
+            com.bitdash.app.alert.PriceAlertManager.onPriceUpdate(this, vh.rawSymbol, price)
+        }
         val formatted = FloatingFmt.price(price)
         vh.tvPrice.text = formatted
 

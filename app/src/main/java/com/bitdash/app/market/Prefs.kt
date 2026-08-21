@@ -143,18 +143,37 @@ object Prefs {
 
     // ---------- 屏幕方向 ----------
     /**
+     * 检测设备是否具备重力感应或加速度传感器。
+     */
+    fun hasGravitySensor(ctx: Context): Boolean {
+        val pm = ctx.packageManager
+        if (pm.hasSystemFeature(android.content.pm.PackageManager.FEATURE_SENSOR_ACCELEROMETER)) return true
+        val sm = ctx.getSystemService(Context.SENSOR_SERVICE) as? android.hardware.SensorManager ?: return false
+        return sm.getDefaultSensor(android.hardware.Sensor.TYPE_ACCELEROMETER) != null ||
+            sm.getDefaultSensor(android.hardware.Sensor.TYPE_GRAVITY) != null
+    }
+
+    /** 默认方向：有重力传感器设备默认跟随全向重力感应，无传感器设备默认固定竖屏 */
+    fun getDefaultOrientation(ctx: Context): Int =
+        if (hasGravitySensor(ctx)) {
+            android.content.pm.ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
+        } else {
+            android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        }
+
+    /**
      * 存的是 [ActivityInfo] 的 SCREEN_ORIENTATION_* 常量值。
      * 存框架常量而非自定义枚举，可以直接交给 setRequestedOrientation。
      */
     fun getOrientation(ctx: Context): Int =
-        sp(ctx).getInt(KEY_ORIENTATION, DEFAULT_ORIENTATION)
+        sp(ctx).getInt(KEY_ORIENTATION, getDefaultOrientation(ctx))
 
     fun saveOrientation(ctx: Context, value: Int) {
         sp(ctx).edit().putInt(KEY_ORIENTATION, value).apply()
     }
 
-    /** 默认竖屏 */
-    val DEFAULT_ORIENTATION = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+    /** 备用竖屏常量 */
+    val DEFAULT_ORIENTATION = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
 
     // ---------- 屏幕常亮 ----------
     fun getKeepScreenOn(ctx: Context): Boolean =
@@ -291,16 +310,29 @@ object Prefs {
     private const val KEY_SHOW_MA1 = "ind_show_ma1"
     private const val KEY_SHOW_MA2 = "ind_show_ma2"
     private const val KEY_SHOW_MA3 = "ind_show_ma3"
+    private const val KEY_SHOW_EMA1 = "ind_show_ema1"
+    private const val KEY_SHOW_EMA2 = "ind_show_ema2"
+    private const val KEY_SHOW_EMA3 = "ind_show_ema3"
     private const val KEY_SHOW_BOLL = "ind_show_boll"
+    private const val KEY_SHOW_SUPERTREND = "ind_show_supertrend"
     private const val KEY_SHOW_TURTLE = "ind_show_turtle"
+    private const val KEY_SHOW_FIBONACCI = "ind_show_fibonacci"
+    private const val KEY_SHOW_HIGH_LOW = "ind_show_high_low"
     private const val KEY_SUB_INDICATOR = "ind_sub_type"
 
     private const val KEY_MA1_PERIOD = "ind_ma1_period"
     private const val KEY_MA2_PERIOD = "ind_ma2_period"
     private const val KEY_MA3_PERIOD = "ind_ma3_period"
 
+    private const val KEY_EMA1_PERIOD = "ind_ema1_period"
+    private const val KEY_EMA2_PERIOD = "ind_ema2_period"
+    private const val KEY_EMA3_PERIOD = "ind_ema3_period"
+
     private const val KEY_BOLL_N = "ind_boll_n"
     private const val KEY_BOLL_K = "ind_boll_k"
+
+    private const val KEY_SUPERTREND_ATR = "ind_supertrend_atr"
+    private const val KEY_SUPERTREND_FACTOR = "ind_supertrend_factor"
 
     private const val KEY_TURTLE_ENTRY = "ind_turtle_entry"
     private const val KEY_TURTLE_EXIT = "ind_turtle_exit"
@@ -323,8 +355,15 @@ object Prefs {
     const val DEFAULT_MA2 = 10
     const val DEFAULT_MA3 = 20
 
+    const val DEFAULT_EMA1 = 7
+    const val DEFAULT_EMA2 = 25
+    const val DEFAULT_EMA3 = 99
+
     const val DEFAULT_BOLL_N = 20
     const val DEFAULT_BOLL_K = 2.0f
+
+    const val DEFAULT_SUPERTREND_ATR = 10
+    const val DEFAULT_SUPERTREND_FACTOR = 3.0f
 
     const val DEFAULT_TURTLE_ENTRY = 20
     const val DEFAULT_TURTLE_EXIT = 10
@@ -351,11 +390,29 @@ object Prefs {
     fun getShowMa3(ctx: Context): Boolean = sp(ctx).getBoolean(KEY_SHOW_MA3, true)
     fun setShowMa3(ctx: Context, show: Boolean) = sp(ctx).edit().putBoolean(KEY_SHOW_MA3, show).apply()
 
+    fun getShowEma1(ctx: Context): Boolean = sp(ctx).getBoolean(KEY_SHOW_EMA1, false)
+    fun setShowEma1(ctx: Context, show: Boolean) = sp(ctx).edit().putBoolean(KEY_SHOW_EMA1, show).apply()
+
+    fun getShowEma2(ctx: Context): Boolean = sp(ctx).getBoolean(KEY_SHOW_EMA2, false)
+    fun setShowEma2(ctx: Context, show: Boolean) = sp(ctx).edit().putBoolean(KEY_SHOW_EMA2, show).apply()
+
+    fun getShowEma3(ctx: Context): Boolean = sp(ctx).getBoolean(KEY_SHOW_EMA3, false)
+    fun setShowEma3(ctx: Context, show: Boolean) = sp(ctx).edit().putBoolean(KEY_SHOW_EMA3, show).apply()
+
     fun getShowBoll(ctx: Context): Boolean = sp(ctx).getBoolean(KEY_SHOW_BOLL, false)
     fun setShowBoll(ctx: Context, show: Boolean) = sp(ctx).edit().putBoolean(KEY_SHOW_BOLL, show).apply()
 
+    fun getShowSuperTrend(ctx: Context): Boolean = sp(ctx).getBoolean(KEY_SHOW_SUPERTREND, false)
+    fun setShowSuperTrend(ctx: Context, show: Boolean) = sp(ctx).edit().putBoolean(KEY_SHOW_SUPERTREND, show).apply()
+
     fun getShowTurtle(ctx: Context): Boolean = sp(ctx).getBoolean(KEY_SHOW_TURTLE, false)
     fun setShowTurtle(ctx: Context, show: Boolean) = sp(ctx).edit().putBoolean(KEY_SHOW_TURTLE, show).apply()
+
+    fun getShowFibonacci(ctx: Context): Boolean = sp(ctx).getBoolean(KEY_SHOW_FIBONACCI, false)
+    fun setShowFibonacci(ctx: Context, show: Boolean) = sp(ctx).edit().putBoolean(KEY_SHOW_FIBONACCI, show).apply()
+
+    fun getShowHighLow(ctx: Context): Boolean = sp(ctx).getBoolean(KEY_SHOW_HIGH_LOW, true)
+    fun setShowHighLow(ctx: Context, show: Boolean) = sp(ctx).edit().putBoolean(KEY_SHOW_HIGH_LOW, show).apply()
 
     /** 当前副图指标："VOL", "MACD", "RSI", "KDJ", "OFF" */
     fun getSubIndicator(ctx: Context): String = sp(ctx).getString(KEY_SUB_INDICATOR, "VOL") ?: "VOL"
@@ -366,8 +423,15 @@ object Prefs {
     fun getMa2Period(ctx: Context): Int = sp(ctx).getInt(KEY_MA2_PERIOD, DEFAULT_MA2)
     fun getMa3Period(ctx: Context): Int = sp(ctx).getInt(KEY_MA3_PERIOD, DEFAULT_MA3)
 
+    fun getEma1Period(ctx: Context): Int = sp(ctx).getInt(KEY_EMA1_PERIOD, DEFAULT_EMA1)
+    fun getEma2Period(ctx: Context): Int = sp(ctx).getInt(KEY_EMA2_PERIOD, DEFAULT_EMA2)
+    fun getEma3Period(ctx: Context): Int = sp(ctx).getInt(KEY_EMA3_PERIOD, DEFAULT_EMA3)
+
     fun getBollN(ctx: Context): Int = sp(ctx).getInt(KEY_BOLL_N, DEFAULT_BOLL_N)
     fun getBollK(ctx: Context): Float = sp(ctx).getFloat(KEY_BOLL_K, DEFAULT_BOLL_K)
+
+    fun getSuperTrendAtr(ctx: Context): Int = sp(ctx).getInt(KEY_SUPERTREND_ATR, DEFAULT_SUPERTREND_ATR)
+    fun getSuperTrendFactor(ctx: Context): Float = sp(ctx).getFloat(KEY_SUPERTREND_FACTOR, DEFAULT_SUPERTREND_FACTOR)
 
     fun getTurtleEntry(ctx: Context): Int = sp(ctx).getInt(KEY_TURTLE_ENTRY, DEFAULT_TURTLE_ENTRY)
     fun getTurtleExit(ctx: Context): Int = sp(ctx).getInt(KEY_TURTLE_EXIT, DEFAULT_TURTLE_EXIT)
@@ -388,7 +452,9 @@ object Prefs {
     fun saveIndicatorParams(
         ctx: Context,
         ma1: Int, ma2: Int, ma3: Int,
+        ema1: Int, ema2: Int, ema3: Int,
         bollN: Int, bollK: Float,
+        superTrendAtr: Int, superTrendFactor: Float,
         turtleEntry: Int, turtleExit: Int, turtleAtr: Int,
         macdFast: Int, macdSlow: Int, macdSig: Int,
         rsi1: Int, rsi2: Int, rsi3: Int,
@@ -398,8 +464,13 @@ object Prefs {
             .putInt(KEY_MA1_PERIOD, ma1.coerceIn(1, 200))
             .putInt(KEY_MA2_PERIOD, ma2.coerceIn(1, 200))
             .putInt(KEY_MA3_PERIOD, ma3.coerceIn(1, 200))
+            .putInt(KEY_EMA1_PERIOD, ema1.coerceIn(1, 200))
+            .putInt(KEY_EMA2_PERIOD, ema2.coerceIn(1, 200))
+            .putInt(KEY_EMA3_PERIOD, ema3.coerceIn(1, 200))
             .putInt(KEY_BOLL_N, bollN.coerceIn(2, 100))
             .putFloat(KEY_BOLL_K, bollK.coerceIn(0.5f, 10.0f))
+            .putInt(KEY_SUPERTREND_ATR, superTrendAtr.coerceIn(1, 100))
+            .putFloat(KEY_SUPERTREND_FACTOR, superTrendFactor.coerceIn(0.5f, 10.0f))
             .putInt(KEY_TURTLE_ENTRY, turtleEntry.coerceIn(2, 200))
             .putInt(KEY_TURTLE_EXIT, turtleExit.coerceIn(2, 200))
             .putInt(KEY_TURTLE_ATR, turtleAtr.coerceIn(2, 100))
@@ -419,7 +490,9 @@ object Prefs {
         saveIndicatorParams(
             ctx,
             DEFAULT_MA1, DEFAULT_MA2, DEFAULT_MA3,
+            DEFAULT_EMA1, DEFAULT_EMA2, DEFAULT_EMA3,
             DEFAULT_BOLL_N, DEFAULT_BOLL_K,
+            DEFAULT_SUPERTREND_ATR, DEFAULT_SUPERTREND_FACTOR,
             DEFAULT_TURTLE_ENTRY, DEFAULT_TURTLE_EXIT, DEFAULT_TURTLE_ATR,
             DEFAULT_MACD_FAST, DEFAULT_MACD_SLOW, DEFAULT_MACD_SIGNAL,
             DEFAULT_RSI1, DEFAULT_RSI2, DEFAULT_RSI3,

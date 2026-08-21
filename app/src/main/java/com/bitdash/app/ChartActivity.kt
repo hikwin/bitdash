@@ -6,6 +6,7 @@ import android.os.Handler
 import android.os.Looper
 import android.util.TypedValue
 import android.view.View
+import android.view.ViewGroup
 import android.widget.HorizontalScrollView
 import android.widget.ImageButton
 import android.widget.ImageView
@@ -58,16 +59,30 @@ class ChartActivity : BaseActivity() {
     private lateinit var chart: CandleChartView
 
     // 指标控制 View
+    private var vIndicatorDivider: View? = null
+
     private var tvMa1: TextView? = null
     private var tvMa2: TextView? = null
     private var tvMa3: TextView? = null
+    private var tvEma: TextView? = null
     private var tvBoll: TextView? = null
-    private var tvTurtle: TextView? = null
+    private var tvMoreIndicators: TextView? = null
     private var tvVolInd: TextView? = null
     private var tvMacd: TextView? = null
     private var tvRsi: TextView? = null
     private var tvKdj: TextView? = null
     private var btnIndicatorSettings: ImageButton? = null
+
+    // 动态折叠到 MORE 的指标状态标志
+    private var isMa1Overflowed = false
+    private var isMa2Overflowed = false
+    private var isMa3Overflowed = false
+    private var isEmaOverflowed = false
+    private var isBollOverflowed = false
+    private var isVolOverflowed = false
+    private var isMacdOverflowed = false
+    private var isRsiOverflowed = false
+    private var isKdjOverflowed = false
 
     private var symbol: String = DEFAULT_SYMBOL
     private var currentBar = Bar.M15
@@ -115,6 +130,7 @@ class ChartActivity : BaseActivity() {
             Bar.values().firstOrNull { it.name == name }?.let { currentBar = it }
         }
 
+        findViewById<View>(R.id.btnBack).setOnClickListener { finish() }
         symbolView = findViewById(R.id.tvSymbol)
         btnStar = findViewById(R.id.btnStar)
         price = findViewById(R.id.tvPrice)
@@ -127,16 +143,27 @@ class ChartActivity : BaseActivity() {
         chart = findViewById(R.id.chart)
 
         // 绑定指标控制栏 View
+        vIndicatorDivider = findViewById(R.id.vIndicatorDivider)
+
         tvMa1 = findViewById(R.id.tvMa1)
         tvMa2 = findViewById(R.id.tvMa2)
         tvMa3 = findViewById(R.id.tvMa3)
+        tvEma = findViewById(R.id.tvEma)
         tvBoll = findViewById(R.id.tvBoll)
-        tvTurtle = findViewById(R.id.tvTurtle)
+        tvMoreIndicators = findViewById(R.id.tvMoreIndicators)
         tvVolInd = findViewById(R.id.tvVolInd)
         tvMacd = findViewById(R.id.tvMacd)
         tvRsi = findViewById(R.id.tvRsi)
         tvKdj = findViewById(R.id.tvKdj)
         btnIndicatorSettings = findViewById(R.id.btnIndicatorSettings)
+
+        findViewById<LinearLayout>(R.id.layoutIndicators)?.addOnLayoutChangeListener { v, left, _, right, _, oldLeft, _, oldRight, _ ->
+            if ((right - left) > 0 && (right - left != oldRight - oldLeft)) {
+                v.post {
+                    checkAndAdjustIndicatorsLayout()
+                }
+            }
+        }
 
         symbolView.text = symbol
         btnStar.setOnClickListener { toggleWatch() }
@@ -163,6 +190,9 @@ class ChartActivity : BaseActivity() {
                 applyRefreshStrategy()
                 refreshAll(showLoading = false)
             }
+        }
+        price.setOnClickListener {
+            com.bitdash.app.alert.PriceAlertDialog.show(this, symbol)
         }
 
         // 十字光标回调 → 顶部覆盖显示该根 K 线的 OHLCV；隐藏时恢复指标栏
@@ -213,6 +243,9 @@ class ChartActivity : BaseActivity() {
         refreshAll(showLoading = chart.isEmptyData())
         applyRefreshStrategy()
         checkAndAdjustTimeframeLayout()
+        findViewById<View>(android.R.id.content)?.post {
+            checkAndAdjustIndicatorsLayout()
+        }
     }
 
     private fun updateStarStatus() {
@@ -276,8 +309,9 @@ class ChartActivity : BaseActivity() {
         tvMa1?.setTextSize(TypedValue.COMPLEX_UNIT_SP, baseMa * scale)
         tvMa2?.setTextSize(TypedValue.COMPLEX_UNIT_SP, baseMa * scale)
         tvMa3?.setTextSize(TypedValue.COMPLEX_UNIT_SP, baseMa * scale)
+        tvEma?.setTextSize(TypedValue.COMPLEX_UNIT_SP, baseMa * scale)
         tvBoll?.setTextSize(TypedValue.COMPLEX_UNIT_SP, baseMa * scale)
-        tvTurtle?.setTextSize(TypedValue.COMPLEX_UNIT_SP, baseMa * scale)
+        tvMoreIndicators?.setTextSize(TypedValue.COMPLEX_UNIT_SP, baseMa * scale)
         tvVolInd?.setTextSize(TypedValue.COMPLEX_UNIT_SP, baseMa * scale)
         tvMacd?.setTextSize(TypedValue.COMPLEX_UNIT_SP, baseMa * scale)
         tvRsi?.setTextSize(TypedValue.COMPLEX_UNIT_SP, baseMa * scale)
@@ -291,6 +325,7 @@ class ChartActivity : BaseActivity() {
         chart.applyFontScale(scale)
         findViewById<View>(android.R.id.content)?.post {
             checkAndAdjustTimeframeLayout()
+            checkAndAdjustIndicatorsLayout()
         }
     }
 
@@ -299,6 +334,7 @@ class ChartActivity : BaseActivity() {
         applyFontScale()
         findViewById<View>(android.R.id.content)?.post {
             checkAndAdjustTimeframeLayout()
+            checkAndAdjustIndicatorsLayout()
         }
     }
 
@@ -424,6 +460,9 @@ class ChartActivity : BaseActivity() {
     }
 
     private fun renderTicker(t: Ticker) {
+        if (t.last > 0.0) {
+            com.bitdash.app.alert.PriceAlertManager.onPriceUpdate(this, symbol, t.last)
+        }
         val c = Palette.byDelta(this, t.changePct)
         price.text = Fmt.price(t.last)
         price.setTextColor(c)
@@ -521,6 +560,19 @@ class ChartActivity : BaseActivity() {
             chart.refreshIndicatorToggles()
         }
 
+        tvEma?.setOnClickListener {
+            val e1 = Prefs.getShowEma1(this)
+            val e2 = Prefs.getShowEma2(this)
+            val e3 = Prefs.getShowEma3(this)
+            val anyOn = e1 || e2 || e3
+            val next = !anyOn
+            Prefs.setShowEma1(this, next)
+            Prefs.setShowEma2(this, next)
+            Prefs.setShowEma3(this, next)
+            updateIndicatorTabsUI()
+            chart.refreshIndicatorToggles()
+        }
+
         tvBoll?.setOnClickListener {
             val next = !Prefs.getShowBoll(this)
             Prefs.setShowBoll(this, next)
@@ -528,11 +580,8 @@ class ChartActivity : BaseActivity() {
             chart.refreshIndicatorToggles()
         }
 
-        tvTurtle?.setOnClickListener {
-            val next = !Prefs.getShowTurtle(this)
-            Prefs.setShowTurtle(this, next)
-            updateIndicatorTabsUI()
-            chart.refreshIndicatorToggles()
+        tvMoreIndicators?.setOnClickListener {
+            showMoreIndicatorsPopup(it)
         }
 
         tvVolInd?.setOnClickListener {
@@ -575,22 +624,280 @@ class ChartActivity : BaseActivity() {
         }
     }
 
+    private fun showMoreIndicatorsPopup(anchor: View) {
+        val popup = PopupMenu(this, anchor)
+        var menuId = 1
+        val itemActionMap = mutableMapOf<Int, () -> Unit>()
+
+        // 1. 如果有因屏幕空间不足而被动态折叠到 MORE 的主图/副图指标，动态展示在菜单顶部
+        if (isMa1Overflowed || isMa2Overflowed || isMa3Overflowed) {
+            val m1 = Prefs.getShowMa1(this)
+            val m2 = Prefs.getShowMa2(this)
+            val m3 = Prefs.getShowMa3(this)
+            val maOn = m1 || m2 || m3
+            val id = menuId++
+            popup.menu.add(0, id, id, "MA 均线 (MA5/10/20)" + if (maOn) "  ✓" else "")
+            itemActionMap[id] = {
+                val next = !maOn
+                Prefs.setShowMa1(this, next)
+                Prefs.setShowMa2(this, next)
+                Prefs.setShowMa3(this, next)
+                updateIndicatorTabsUI()
+                chart.refreshIndicatorToggles()
+            }
+        }
+
+        if (isEmaOverflowed) {
+            val emaOn = Prefs.getShowEma1(this) || Prefs.getShowEma2(this) || Prefs.getShowEma3(this)
+            val id = menuId++
+            popup.menu.add(0, id, id, "EMA 均线 (EMA7/25/99)" + if (emaOn) "  ✓" else "")
+            itemActionMap[id] = {
+                val next = !emaOn
+                Prefs.setShowEma1(this, next)
+                Prefs.setShowEma2(this, next)
+                Prefs.setShowEma3(this, next)
+                updateIndicatorTabsUI()
+                chart.refreshIndicatorToggles()
+            }
+        }
+
+        if (isBollOverflowed) {
+            val show = Prefs.getShowBoll(this)
+            val id = menuId++
+            popup.menu.add(0, id, id, "BOLL 布林带" + if (show) "  ✓" else "")
+            itemActionMap[id] = {
+                Prefs.setShowBoll(this, !show)
+                updateIndicatorTabsUI()
+                chart.refreshIndicatorToggles()
+            }
+        }
+
+        if (isVolOverflowed) {
+            val show = Prefs.getSubIndicator(this) == "VOL"
+            val id = menuId++
+            popup.menu.add(0, id, id, "VOL 成交量" + if (show) "  ✓" else "")
+            itemActionMap[id] = {
+                Prefs.setSubIndicator(this, if (show) "OFF" else "VOL")
+                updateIndicatorTabsUI()
+                chart.refreshIndicatorToggles()
+            }
+        }
+
+        if (isMacdOverflowed) {
+            val show = Prefs.getSubIndicator(this) == "MACD"
+            val id = menuId++
+            popup.menu.add(0, id, id, "MACD" + if (show) "  ✓" else "")
+            itemActionMap[id] = {
+                Prefs.setSubIndicator(this, if (show) "OFF" else "MACD")
+                updateIndicatorTabsUI()
+                chart.refreshIndicatorToggles()
+            }
+        }
+
+        if (isRsiOverflowed) {
+            val show = Prefs.getSubIndicator(this) == "RSI"
+            val id = menuId++
+            popup.menu.add(0, id, id, "RSI" + if (show) "  ✓" else "")
+            itemActionMap[id] = {
+                Prefs.setSubIndicator(this, if (show) "OFF" else "RSI")
+                updateIndicatorTabsUI()
+                chart.refreshIndicatorToggles()
+            }
+        }
+
+        if (isKdjOverflowed) {
+            val show = Prefs.getSubIndicator(this) == "KDJ"
+            val id = menuId++
+            popup.menu.add(0, id, id, "KDJ" + if (show) "  ✓" else "")
+            itemActionMap[id] = {
+                Prefs.setSubIndicator(this, if (show) "OFF" else "KDJ")
+                updateIndicatorTabsUI()
+                chart.refreshIndicatorToggles()
+            }
+        }
+
+        // 2. 常驻扩展指标与图表工具
+        val showSt = Prefs.getShowSuperTrend(this)
+        val showFib = Prefs.getShowFibonacci(this)
+        val showTurtle = Prefs.getShowTurtle(this)
+        val showHl = Prefs.getShowHighLow(this)
+        val isRuler = chart.isRulerMode
+
+        val idSt = menuId++
+        popup.menu.add(0, idSt, idSt, "SuperTrend 超级趋势" + if (showSt) "  ✓" else "")
+        itemActionMap[idSt] = {
+            Prefs.setShowSuperTrend(this, !showSt)
+            updateIndicatorTabsUI()
+            chart.refreshIndicatorToggles()
+        }
+
+        val idFib = menuId++
+        popup.menu.add(0, idFib, idFib, "Fibonacci 斐波那契回调" + if (showFib) "  ✓" else "")
+        itemActionMap[idFib] = {
+            Prefs.setShowFibonacci(this, !showFib)
+            updateIndicatorTabsUI()
+            chart.refreshIndicatorToggles()
+        }
+
+        val idTurtle = menuId++
+        popup.menu.add(0, idTurtle, idTurtle, "TURTLE 海龟通道" + if (showTurtle) "  ✓" else "")
+        itemActionMap[idTurtle] = {
+            Prefs.setShowTurtle(this, !showTurtle)
+            updateIndicatorTabsUI()
+            chart.refreshIndicatorToggles()
+        }
+
+        val idHl = menuId++
+        popup.menu.add(0, idHl, idHl, "最高/最低价极值标签" + if (showHl) "  ✓" else "")
+        itemActionMap[idHl] = {
+            Prefs.setShowHighLow(this, !showHl)
+            updateIndicatorTabsUI()
+            chart.refreshIndicatorToggles()
+        }
+
+        val idRuler = menuId++
+        popup.menu.add(0, idRuler, idRuler, "📐 区间测算尺工具" + if (isRuler) "  ✓" else "")
+        itemActionMap[idRuler] = {
+            chart.toggleRulerMode()
+            updateIndicatorTabsUI()
+            val hint = if (chart.isRulerMode) "已开启测算尺：请在图表上拖拽或点击选区" else "已退出测算尺"
+            Toast.makeText(this, hint, Toast.LENGTH_SHORT).show()
+        }
+
+        popup.setOnMenuItemClickListener { item ->
+            itemActionMap[item.itemId]?.invoke()
+            true
+        }
+        popup.show()
+    }
+
+    private fun checkAndAdjustIndicatorsLayout() {
+        val parent = findViewById<LinearLayout>(R.id.layoutIndicators) ?: return
+        val parentW = parent.width - parent.paddingStart - parent.paddingEnd
+        val parentH = parent.height
+        if (parentW <= 0) return
+
+        val heightSpec = View.MeasureSpec.makeMeasureSpec(
+            if (parentH > 0) parentH else (28f * resources.displayMetrics.density).toInt(),
+            View.MeasureSpec.EXACTLY
+        )
+        val widthSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+
+        // 测量右侧常驻项（MORE 按钮 + 设置齿轮按钮）
+        tvMoreIndicators?.measure(widthSpec, heightSpec)
+        btnIndicatorSettings?.measure(widthSpec, heightSpec)
+        val moreW = tvMoreIndicators?.measuredWidth ?: 0
+        val settingsMargin = (btnIndicatorSettings?.layoutParams as? ViewGroup.MarginLayoutParams)?.let { lp -> lp.marginStart + lp.marginEnd } ?: 0
+        val settingsW = (btnIndicatorSettings?.measuredWidth ?: 0) + settingsMargin
+        val actionsW = moreW + settingsW
+
+        // 留出 8dp 的充足安全冗余，确保无论字号缩放或系统 DPI 差异，设置齿轮绝不会被挤到屏幕外
+        val safetyMargin = (8f * resources.displayMetrics.density).toInt()
+        val availableWidth = (parentW - actionsW - safetyMargin).coerceAtLeast(0)
+
+        data class IndicatorTabItem(
+            val name: String,
+            val view: View?,
+            val setOverflow: (Boolean) -> Unit
+        )
+
+        // 动态测量并决定各指标显隐
+        val items = listOf(
+            IndicatorTabItem("MA1", tvMa1) { overflow -> isMa1Overflowed = overflow },
+            IndicatorTabItem("MA2", tvMa2) { overflow -> isMa2Overflowed = overflow },
+            IndicatorTabItem("MA3", tvMa3) { overflow -> isMa3Overflowed = overflow },
+            IndicatorTabItem("EMA", tvEma) { overflow -> isEmaOverflowed = overflow },
+            IndicatorTabItem("BOLL", tvBoll) { overflow -> isBollOverflowed = overflow },
+            IndicatorTabItem("VOL", tvVolInd) { overflow -> isVolOverflowed = overflow },
+            IndicatorTabItem("MACD", tvMacd) { overflow -> isMacdOverflowed = overflow },
+            IndicatorTabItem("RSI", tvRsi) { overflow -> isRsiOverflowed = overflow },
+            IndicatorTabItem("KDJ", tvKdj) { overflow -> isKdjOverflowed = overflow }
+        )
+
+        vIndicatorDivider?.measure(widthSpec, heightSpec)
+        val divW = (vIndicatorDivider?.measuredWidth ?: 0) + (10f * resources.displayMetrics.density).toInt()
+
+        var accumulatedW = 0
+        var visibleMainCount = 0
+        var visibleSubCount = 0
+        var hasVisibilityChange = false
+
+        for (item in items) {
+            val view = item.view ?: continue
+            view.measure(widthSpec, heightSpec)
+            val itemW = view.measuredWidth
+            val extraW = if (item.name == "VOL" && visibleMainCount > 0) divW else 0
+
+            if (accumulatedW + itemW + extraW <= availableWidth) {
+                if (view.visibility != View.VISIBLE) {
+                    view.visibility = View.VISIBLE
+                    hasVisibilityChange = true
+                }
+                item.setOverflow(false)
+                accumulatedW += itemW + extraW
+                if (item.name in listOf("MA1", "MA2", "MA3", "EMA", "BOLL")) {
+                    visibleMainCount++
+                } else {
+                    visibleSubCount++
+                }
+            } else {
+                if (view.visibility != View.GONE) {
+                    view.visibility = View.GONE
+                    hasVisibilityChange = true
+                }
+                item.setOverflow(true)
+            }
+        }
+
+        // 分隔线显隐：只有当主图与副图指标同时有可见项时才显示
+        val divTargetVis = if (visibleMainCount > 0 && visibleSubCount > 0) View.VISIBLE else View.GONE
+        if (vIndicatorDivider?.visibility != divTargetVis) {
+            vIndicatorDivider?.visibility = divTargetVis
+            hasVisibilityChange = true
+        }
+
+        if (hasVisibilityChange) {
+            parent.requestLayout()
+        }
+    }
+
     private fun updateIndicatorTabsUI() {
         tvMa1?.text = "MA${Prefs.getMa1Period(this)}"
         tvMa2?.text = "MA${Prefs.getMa2Period(this)}"
         tvMa3?.text = "MA${Prefs.getMa3Period(this)}"
+        tvEma?.text = "EMA"
 
         tvMa1?.alpha = if (Prefs.getShowMa1(this)) 1.0f else 0.30f
         tvMa2?.alpha = if (Prefs.getShowMa2(this)) 1.0f else 0.30f
         tvMa3?.alpha = if (Prefs.getShowMa3(this)) 1.0f else 0.30f
+
+        val emaOn = Prefs.getShowEma1(this) || Prefs.getShowEma2(this) || Prefs.getShowEma3(this)
+        tvEma?.alpha = if (emaOn) 1.0f else 0.30f
         tvBoll?.alpha = if (Prefs.getShowBoll(this)) 1.0f else 0.30f
-        tvTurtle?.alpha = if (Prefs.getShowTurtle(this)) 1.0f else 0.30f
+
+        val anyOverflowActive = (isMa1Overflowed && Prefs.getShowMa1(this)) ||
+            (isMa2Overflowed && Prefs.getShowMa2(this)) ||
+            (isMa3Overflowed && Prefs.getShowMa3(this)) ||
+            (isEmaOverflowed && emaOn) ||
+            (isBollOverflowed && Prefs.getShowBoll(this)) ||
+            (isVolOverflowed && Prefs.getSubIndicator(this) == "VOL") ||
+            (isMacdOverflowed && Prefs.getSubIndicator(this) == "MACD") ||
+            (isRsiOverflowed && Prefs.getSubIndicator(this) == "RSI") ||
+            (isKdjOverflowed && Prefs.getSubIndicator(this) == "KDJ")
+
+        val moreActive = Prefs.getShowSuperTrend(this) || Prefs.getShowFibonacci(this) ||
+            Prefs.getShowTurtle(this) || chart.isRulerMode || anyOverflowActive
+        tvMoreIndicators?.alpha = if (moreActive) 1.0f else 0.55f
 
         val sub = Prefs.getSubIndicator(this)
         tvVolInd?.alpha = if (sub == "VOL") 1.0f else 0.30f
         tvMacd?.alpha = if (sub == "MACD") 1.0f else 0.30f
         tvRsi?.alpha = if (sub == "RSI") 1.0f else 0.30f
         tvKdj?.alpha = if (sub == "KDJ") 1.0f else 0.30f
+
+        findViewById<View>(android.R.id.content)?.post {
+            checkAndAdjustIndicatorsLayout()
+        }
     }
 
     private fun timeLabel(ts: Long): String =
@@ -689,6 +996,10 @@ class ChartActivity : BaseActivity() {
             // 空间充足：展开全部单选按钮
             if (scrollView.visibility != View.VISIBLE) scrollView.visibility = View.VISIBLE
             if (btnDropdown.visibility != View.GONE) btnDropdown.visibility = View.GONE
+        }
+
+        findViewById<View>(android.R.id.content)?.post {
+            checkAndAdjustIndicatorsLayout()
         }
     }
 

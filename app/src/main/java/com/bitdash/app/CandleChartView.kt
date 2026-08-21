@@ -40,9 +40,13 @@ class CandleChartView @JvmOverloads constructor(
         val ma1: Float? = null,
         val ma2: Float? = null,
         val ma3: Float? = null,
+        val ema1: Float? = null,
+        val ema2: Float? = null,
+        val ema3: Float? = null,
         val bollMid: Float? = null,
         val bollUp: Float? = null,
         val bollDn: Float? = null,
+        val superTrend: Float? = null,
         val turtleUp: Float? = null,
         val turtleDn: Float? = null,
         val turtleExitLong: Float? = null,
@@ -67,7 +71,11 @@ class CandleChartView @JvmOverloads constructor(
     private var ma1: FloatArray = FloatArray(0)
     private var ma2: FloatArray = FloatArray(0)
     private var ma3: FloatArray = FloatArray(0)
+    private var ema1: FloatArray = FloatArray(0)
+    private var ema2: FloatArray = FloatArray(0)
+    private var ema3: FloatArray = FloatArray(0)
     private var bollResult: Indicators.BollResult? = null
+    private var superTrendResult: Indicators.SuperTrendResult? = null
     private var turtleResult: Indicators.TurtleResult? = null
 
     // 副图指标数据
@@ -81,9 +89,23 @@ class CandleChartView @JvmOverloads constructor(
     var showMa1 = Prefs.getShowMa1(context)
     var showMa2 = Prefs.getShowMa2(context)
     var showMa3 = Prefs.getShowMa3(context)
+    var showEma1 = Prefs.getShowEma1(context)
+    var showEma2 = Prefs.getShowEma2(context)
+    var showEma3 = Prefs.getShowEma3(context)
     var showBoll = Prefs.getShowBoll(context)
+    var showSuperTrend = Prefs.getShowSuperTrend(context)
     var showTurtle = Prefs.getShowTurtle(context)
+    var showFibonacci = Prefs.getShowFibonacci(context)
+    var showHighLow = Prefs.getShowHighLow(context)
     var subIndicatorType = Prefs.getSubIndicator(context) // "VOL", "MACD", "RSI", "KDJ", "OFF"
+
+    // ---------- 区间测算尺工具 (Ruler) ----------
+    var isRulerMode = false
+        private set
+    var rulerStartIdx = -1
+    var rulerStartPrice = 0.0
+    var rulerEndIdx = -1
+    var rulerEndPrice = 0.0
 
     // ---------- 显示状态 ----------
     private var visibleCount = 90f     // 可见蜡烛数
@@ -157,11 +179,64 @@ class CandleChartView @JvmOverloads constructor(
     private val ma3Paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE; strokeWidth = 1.2f * density
     }
+    private val ema1Paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeWidth = 1.2f * density
+    }
+    private val ema2Paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeWidth = 1.2f * density
+    }
+    private val ema3Paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeWidth = 1.2f * density
+    }
     private val bollUpPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE; strokeWidth = 1.2f * density
     }
     private val bollDnPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE; strokeWidth = 1.2f * density
+    }
+    private val superTrendUpPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeWidth = 1.8f * density
+    }
+    private val superTrendDnPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeWidth = 1.8f * density
+    }
+    private val superTrendFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+    }
+    private val fibLinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeWidth = 1f * density
+        pathEffect = DashPathEffect(floatArrayOf(4f * density, 3f * density), 0f)
+    }
+    private val fibTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        isFakeBoldText = true
+    }
+    private val fibFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+    }
+    private val highLowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeWidth = 1f * density
+    }
+    private val highLowTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        isFakeBoldText = true
+    }
+    private val rulerBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+    }
+    private val rulerBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeWidth = 1.2f * density
+        pathEffect = DashPathEffect(floatArrayOf(4f * density, 3f * density), 0f)
+    }
+    private val rulerLinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeWidth = 1.5f * density
+    }
+    private val rulerCardBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+    }
+    private val rulerCardBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeWidth = 1f * density
+    }
+    private val rulerTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        isFakeBoldText = true
     }
     private val turtleUpPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE; strokeWidth = 1.2f * density
@@ -224,6 +299,15 @@ class CandleChartView @JvmOverloads constructor(
     private val crossTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         isFakeBoldText = true
     }
+    private val crossPercentBg = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+    }
+    private val crossPercentBorder = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+    }
+    private val crossPercentText = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        isFakeBoldText = true
+    }
     private val subLegendPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         isFakeBoldText = true
     }
@@ -232,6 +316,8 @@ class CandleChartView @JvmOverloads constructor(
     }
 
     private val linePath = Path()
+    private var currentMinPrice = 0.0
+    private var currentPriceRange = 1.0
 
     // 时间格式
     var timePattern = "MM-dd HH:mm"
@@ -268,8 +354,28 @@ class CandleChartView @JvmOverloads constructor(
         ma2Paint.color = ContextCompat.getColor(context, R.color.ma10)
         ma3Paint.color = ContextCompat.getColor(context, R.color.ma20)
 
+        // EMA 曲线颜色：青色、紫色、橙色
+        ema1Paint.color = 0xFF06B6D4.toInt()
+        ema2Paint.color = 0xFFA855F7.toInt()
+        ema3Paint.color = 0xFFF97316.toInt()
+
         bollUpPaint.color = ContextCompat.getColor(context, R.color.boll_up)
         bollDnPaint.color = ContextCompat.getColor(context, R.color.boll_dn)
+
+        superTrendUpPaint.color = Palette.up(context)
+        superTrendDnPaint.color = Palette.down(context)
+        superTrendFillPaint.color = if (isNight) 0x1410B981.toInt() else 0x1010B981.toInt()
+
+        fibLinePaint.color = if (isNight) 0x8894A3B8.toInt() else 0x8864748B.toInt()
+        fibTextPaint.color = if (isNight) 0xFFCBD5E1.toInt() else 0xFF475569.toInt()
+        fibFillPaint.color = if (isNight) 0x18F59E0B.toInt() else 0x1AEB7E03.toInt()
+
+        highLowPaint.color = textMuted
+        highLowTextPaint.color = textMuted
+
+        rulerCardBgPaint.color = if (isNight) 0xF21E293B.toInt() else 0xF8FFFFFF.toInt()
+        rulerCardBorderPaint.color = if (isNight) 0x6664748B.toInt() else 0x66CBD5E1.toInt()
+        rulerTextPaint.color = textMain
 
         turtleUpPaint.color = ContextCompat.getColor(context, R.color.turtle_up)
         turtleDnPaint.color = ContextCompat.getColor(context, R.color.turtle_dn)
@@ -297,6 +403,8 @@ class CandleChartView @JvmOverloads constructor(
         crossDotStroke.strokeWidth = 1.5f * density
         crossLabelBg.color = if (isNight) 0xFF334155.toInt() else 0xFF1E293B.toInt()
         crossTextPaint.color = 0xFFFFFFFF.toInt()
+        crossPercentBg.color = if (isNight) 0xF01E293B.toInt() else 0xF2FFFFFF.toInt()
+        crossPercentBorder.strokeWidth = 1f * density
 
         emptyPaint.color = textDim
         invalidate()
@@ -310,6 +418,10 @@ class CandleChartView @JvmOverloads constructor(
         timePaint.textSize = 10f * density * fontScale
         tagTextPaint.textSize = 10f * density * fontScale
         crossTextPaint.textSize = 10f * density * fontScale
+        crossPercentText.textSize = 10f * density * fontScale
+        fibTextPaint.textSize = 9f * density * fontScale
+        highLowTextPaint.textSize = 9.5f * density * fontScale
+        rulerTextPaint.textSize = 10.5f * density * fontScale
         subLegendPaint.textSize = 9.5f * density * fontScale
         emptyPaint.textSize = 14f * density * fontScale
         updateThemeColors()
@@ -322,8 +434,14 @@ class CandleChartView @JvmOverloads constructor(
         showMa1 = Prefs.getShowMa1(context)
         showMa2 = Prefs.getShowMa2(context)
         showMa3 = Prefs.getShowMa3(context)
+        showEma1 = Prefs.getShowEma1(context)
+        showEma2 = Prefs.getShowEma2(context)
+        showEma3 = Prefs.getShowEma3(context)
         showBoll = Prefs.getShowBoll(context)
+        showSuperTrend = Prefs.getShowSuperTrend(context)
         showTurtle = Prefs.getShowTurtle(context)
+        showFibonacci = Prefs.getShowFibonacci(context)
+        showHighLow = Prefs.getShowHighLow(context)
         subIndicatorType = Prefs.getSubIndicator(context)
         computeAllIndicators()
         notifyCurrentIndicatorValues()
@@ -423,6 +541,24 @@ class CandleChartView @JvmOverloads constructor(
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
+        if (isRulerMode) {
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    parent?.requestDisallowInterceptTouchEvent(true)
+                    updateRulerPoint(event.x, event.y, isStart = true)
+                    return true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    updateRulerPoint(event.x, event.y, isStart = false)
+                    return true
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    return true
+                }
+            }
+            return true
+        }
+
         scaleDetector.onTouchEvent(event)
         gestureDetector.onTouchEvent(event)
 
@@ -482,6 +618,42 @@ class CandleChartView @JvmOverloads constructor(
         return true
     }
 
+    private fun updateRulerPoint(x: Float, y: Float, isStart: Boolean) {
+        if (candles.isEmpty() || chartW <= 0f) return
+        val cw = candleWidth()
+        if (cw <= 0f) return
+        val range = visibleRange() ?: return
+        val idxFloat = (candles.size - 1 - scrollFromRight + 0.5f) - (paddingLeft + chartW - x) / cw
+        val idx = kotlin.math.round(idxFloat).toInt().coerceIn(range.first, range.last)
+        val p = priceAtY(y.coerceIn(paddingTop.toFloat(), paddingTop + priceH), currentMinPrice, currentPriceRange)
+        if (isStart) {
+            rulerStartIdx = idx
+            rulerStartPrice = p
+            rulerEndIdx = idx
+            rulerEndPrice = p
+        } else {
+            rulerEndIdx = idx
+            rulerEndPrice = p
+        }
+        invalidate()
+    }
+
+    fun toggleRulerMode(enabled: Boolean? = null) {
+        isRulerMode = enabled ?: !isRulerMode
+        if (!isRulerMode) {
+            clearRuler()
+        }
+        invalidate()
+    }
+
+    fun clearRuler() {
+        rulerStartIdx = -1
+        rulerEndIdx = -1
+        rulerStartPrice = 0.0
+        rulerEndPrice = 0.0
+        invalidate()
+    }
+
     private fun hideCrosshair() {
         if (crossIndex >= 0) {
             crossIndex = -1
@@ -513,9 +685,15 @@ class CandleChartView @JvmOverloads constructor(
         val m2 = if (targetIdx < ma2.size && ma2[targetIdx] > 0f) ma2[targetIdx] else null
         val m3 = if (targetIdx < ma3.size && ma3[targetIdx] > 0f) ma3[targetIdx] else null
 
+        val e1 = if (targetIdx < ema1.size && ema1[targetIdx] > 0f) ema1[targetIdx] else null
+        val e2 = if (targetIdx < ema2.size && ema2[targetIdx] > 0f) ema2[targetIdx] else null
+        val e3 = if (targetIdx < ema3.size && ema3[targetIdx] > 0f) ema3[targetIdx] else null
+
         val bMid = bollResult?.mid?.getOrNull(targetIdx)?.takeIf { it > 0f }
         val bUp = bollResult?.up?.getOrNull(targetIdx)?.takeIf { it > 0f }
         val bDn = bollResult?.dn?.getOrNull(targetIdx)?.takeIf { it > 0f }
+
+        val stVal = superTrendResult?.value?.getOrNull(targetIdx)?.takeIf { it > 0f }
 
         val dif = macdResult?.dif?.getOrNull(targetIdx)
         val dea = macdResult?.dea?.getOrNull(targetIdx)
@@ -537,7 +715,9 @@ class CandleChartView @JvmOverloads constructor(
 
         val values = IndicatorValues(
             ma1 = m1, ma2 = m2, ma3 = m3,
+            ema1 = e1, ema2 = e2, ema3 = e3,
             bollMid = bMid, bollUp = bUp, bollDn = bDn,
+            superTrend = stVal,
             turtleUp = tUp, turtleDn = tDn, turtleExitLong = tExL, turtleExitShort = tExS, turtleAtr = tAtr,
             vol = c.vol,
             dif = dif, dea = dea, macd = macd,
@@ -587,7 +767,7 @@ class CandleChartView @JvmOverloads constructor(
             if (c.high > maxP) maxP = c.high
         }
 
-        // MA / BOLL / TURTLE 纳入价格轴
+        // MA / EMA / BOLL / TURTLE / SUPERTREND 纳入价格轴
         for (i in leftIdx..rightIdx) {
             if (showMa1 && i < ma1.size && ma1[i] > 0f) {
                 if (ma1[i] < minP) minP = ma1[i].toDouble()
@@ -601,11 +781,31 @@ class CandleChartView @JvmOverloads constructor(
                 if (ma3[i] < minP) minP = ma3[i].toDouble()
                 if (ma3[i] > maxP) maxP = ma3[i].toDouble()
             }
+            if (showEma1 && i < ema1.size && ema1[i] > 0f) {
+                if (ema1[i] < minP) minP = ema1[i].toDouble()
+                if (ema1[i] > maxP) maxP = ema1[i].toDouble()
+            }
+            if (showEma2 && i < ema2.size && ema2[i] > 0f) {
+                if (ema2[i] < minP) minP = ema2[i].toDouble()
+                if (ema2[i] > maxP) maxP = ema2[i].toDouble()
+            }
+            if (showEma3 && i < ema3.size && ema3[i] > 0f) {
+                if (ema3[i] < minP) minP = ema3[i].toDouble()
+                if (ema3[i] > maxP) maxP = ema3[i].toDouble()
+            }
             if (showBoll) {
                 bollResult?.let { boll ->
                     if (i < boll.up.size && boll.up[i] > 0f) {
                         if (boll.up[i] > maxP) maxP = boll.up[i].toDouble()
                         if (boll.dn[i] < minP && boll.dn[i] > 0f) minP = boll.dn[i].toDouble()
+                    }
+                }
+            }
+            if (showSuperTrend) {
+                superTrendResult?.let { st ->
+                    if (i < st.value.size && st.value[i] > 0f) {
+                        if (st.value[i] < minP) minP = st.value[i].toDouble()
+                        if (st.value[i] > maxP) maxP = st.value[i].toDouble()
                     }
                 }
             }
@@ -626,6 +826,9 @@ class CandleChartView @JvmOverloads constructor(
         maxP += padP
         val priceRange = (maxP - minP).coerceAtLeast(1e-12)
 
+        currentMinPrice = minP
+        currentPriceRange = priceRange
+
         // ---- 2. 绘制主图网格与价格刻度 ----
         val labelDy = -(textPaint.ascent() + textPaint.descent()) / 2f
         for (g in 0..GRID_LINES) {
@@ -636,6 +839,11 @@ class CandleChartView @JvmOverloads constructor(
             canvas.drawText(
                 Fmt.price(p), paddingLeft + chartW + 4f * density, y + labelDy, textPaint
             )
+        }
+
+        // ---- 2.5 绘制斐波那契自动回调线 ----
+        if (showFibonacci) {
+            drawFibonacciRetracement(canvas, leftIdx, rightIdx, minP, priceRange)
         }
 
         val cw = candleWidth()
@@ -663,10 +871,20 @@ class CandleChartView @JvmOverloads constructor(
             )
         }
 
+        // ---- 3.5 绘制可视区域最高价与最低价极值标签 ----
+        if (showHighLow) {
+            drawHighLowMarkers(canvas, leftIdx, rightIdx, minP, priceRange)
+        }
+
         // ---- 4. 绘制主图 MA 折线 ----
         if (showMa1) drawLineSeries(canvas, ma1, leftIdx, rightIdx, cw, minP, priceRange, ma1Paint)
         if (showMa2) drawLineSeries(canvas, ma2, leftIdx, rightIdx, cw, minP, priceRange, ma2Paint)
         if (showMa3) drawLineSeries(canvas, ma3, leftIdx, rightIdx, cw, minP, priceRange, ma3Paint)
+
+        // ---- 4.5 绘制主图 EMA 折线 ----
+        if (showEma1) drawLineSeries(canvas, ema1, leftIdx, rightIdx, cw, minP, priceRange, ema1Paint)
+        if (showEma2) drawLineSeries(canvas, ema2, leftIdx, rightIdx, cw, minP, priceRange, ema2Paint)
+        if (showEma3) drawLineSeries(canvas, ema3, leftIdx, rightIdx, cw, minP, priceRange, ema3Paint)
 
         // ---- 5. 绘制主图 BOLL 轨道线 ----
         if (showBoll) {
@@ -677,11 +895,21 @@ class CandleChartView @JvmOverloads constructor(
             }
         }
 
+        // ---- 5.1 绘制主图 SuperTrend 超级趋势 ----
+        if (showSuperTrend) {
+            drawSuperTrend(canvas, leftIdx, rightIdx, cw, minP, priceRange)
+        }
+
         // ---- 5.2 绘制主图 TURTLE 海龟通道 ----
         if (showTurtle) {
             turtleResult?.let { t ->
                 drawTurtleChannel(canvas, t, leftIdx, rightIdx, cw, minP, priceRange)
             }
+        }
+
+        // ---- 5.5 绘制区间测算尺 (Ruler) ----
+        if (rulerStartIdx >= 0 && rulerEndIdx >= 0) {
+            drawRulerOverlay(canvas, minP, priceRange)
         }
 
         // ---- 6. 绘制副图指标 ----
@@ -733,9 +961,16 @@ class CandleChartView @JvmOverloads constructor(
             canvas.drawCircle(x, crossY, 3.5f * density, crossDotPaint)
             canvas.drawCircle(x, crossY, 3.5f * density, crossDotStroke)
 
+            val focusPrice = priceAtY(crossY, minP, priceRange)
+            val realTimePrice = candles[candles.size - 1].close
+            if (realTimePrice > 0.0) {
+                val pctDiff = ((focusPrice - realTimePrice) / realTimePrice) * 100.0
+                drawCrosshairPercentBadge(canvas, pctDiff, x, crossY)
+            }
+
             // 右侧价格轴高亮标签
             drawAxisTag(
-                canvas, Fmt.price(priceAtY(crossY, minP, priceRange)), crossY,
+                canvas, Fmt.price(focusPrice), crossY,
                 crossLabelBg, crossTextPaint
             )
 
@@ -743,6 +978,64 @@ class CandleChartView @JvmOverloads constructor(
             val timeStr = timeFmt.format(Date(candles[crossIndex].ts))
             drawTimeAxisTag(canvas, timeStr, x)
         }
+    }
+
+    private fun drawCrosshairPercentBadge(canvas: Canvas, pct: Double, x: Float, y: Float) {
+        val isUp = pct >= 0.005
+        val isDown = pct <= -0.005
+        val text = when {
+            isUp -> String.format(Locale.US, "+%.2f%%", pct)
+            isDown -> String.format(Locale.US, "%.2f%%", pct)
+            else -> "0.00%"
+        }
+        val color = when {
+            isUp -> upPaint.color
+            isDown -> downPaint.color
+            else -> textPaint.color
+        }
+        crossPercentText.color = color
+        crossPercentBorder.color = (color and 0x00FFFFFF) or 0x66000000
+
+        val hPad = 6f * density
+        val vPad = 3f * density
+        val textW = crossPercentText.measureText(text)
+        val textH = crossPercentText.descent() - crossPercentText.ascent()
+        val badgeW = textW + hPad * 2f
+        val badgeH = textH + vPad * 2f
+
+        // 充足的手指避让距离（防止大拇指或食指按压时遮挡徽标）
+        val fingerClearanceX = 22f * density
+        val fingerClearanceY = 24f * density
+
+        // 默认放置在十字焦点右上方，明显悬浮于手指上方
+        var left = x + fingerClearanceX
+        var top = y - badgeH - fingerClearanceY
+
+        // 右侧边界避让：若超出图表右侧，翻转至焦点左侧
+        if (left + badgeW > paddingLeft + chartW - 4f * density) {
+            left = x - badgeW - fingerClearanceX
+        }
+        // 左侧边界保护
+        if (left < paddingLeft + 4f * density) {
+            left = paddingLeft + 4f * density
+        }
+
+        // 顶部边界避让：若超出图表顶部，翻转至焦点下方手指触摸区域以外
+        if (top < paddingTop + 4f * density) {
+            top = y + fingerClearanceY
+        }
+        // 底部边界保护（不超过主图区域）
+        if (top + badgeH > paddingTop + priceH - 4f * density) {
+            top = (paddingTop + priceH - badgeH - 4f * density).coerceAtLeast(paddingTop + 4f * density)
+        }
+
+        val radius = 4f * density
+        val rect = RectF(left, top, left + badgeW, top + badgeH)
+        canvas.drawRoundRect(rect, radius, radius, crossPercentBg)
+        canvas.drawRoundRect(rect, radius, radius, crossPercentBorder)
+
+        val textY = top + vPad - crossPercentText.ascent()
+        canvas.drawText(text, left + hPad, textY, crossPercentText)
     }
 
     private fun drawTimeAxisTag(canvas: Canvas, text: String, x: Float) {
@@ -1105,6 +1398,190 @@ class CandleChartView @JvmOverloads constructor(
         canvas.drawText(text, left + 4f * density, top + half - (fg.ascent() + fg.descent()) / 2f, fg)
     }
 
+    private fun drawHighLowMarkers(canvas: Canvas, leftIdx: Int, rightIdx: Int, minP: Double, range: Double) {
+        if (leftIdx > rightIdx || candles.isEmpty()) return
+        var maxHigh = -Double.MAX_VALUE
+        var minLow = Double.MAX_VALUE
+        var maxIdx = leftIdx
+        var minIdx = leftIdx
+
+        for (i in leftIdx..rightIdx) {
+            val c = candles[i]
+            if (c.high > maxHigh) {
+                maxHigh = c.high
+                maxIdx = i
+            }
+            if (c.low < minLow) {
+                minLow = c.low
+                minIdx = i
+            }
+        }
+
+        if (maxHigh <= minLow) return
+
+        // 绘制最高价标签
+        val hx = xOfIndex(maxIdx.toFloat())
+        val hy = yOfPrice(maxHigh, minP, range)
+        val maxText = Fmt.price(maxHigh)
+        val maxTextW = highLowTextPaint.measureText(maxText)
+        val lineLen = 14f * density
+        val arrowPad = 3f * density
+
+        if (hx > paddingLeft + chartW * 0.65f) {
+            // 靠近右侧：向左延伸 [text] ──
+            val textLeft = hx - lineLen - arrowPad - maxTextW
+            canvas.drawLine(hx, hy, hx - lineLen, hy, highLowPaint)
+            canvas.drawText(maxText, textLeft.coerceAtLeast(paddingLeft + 4f * density), hy + 3.5f * density, highLowTextPaint)
+        } else {
+            // 靠近左侧：向右延伸 ── [text]
+            canvas.drawLine(hx, hy, hx + lineLen, hy, highLowPaint)
+            canvas.drawText(maxText, hx + lineLen + arrowPad, hy + 3.5f * density, highLowTextPaint)
+        }
+
+        // 绘制最低价标签
+        val lx = xOfIndex(minIdx.toFloat())
+        val ly = yOfPrice(minLow, minP, range)
+        val minText = Fmt.price(minLow)
+        val minTextW = highLowTextPaint.measureText(minText)
+
+        if (lx > paddingLeft + chartW * 0.65f) {
+            // 靠近右侧：向左延伸 [text] ──
+            val textLeft = lx - lineLen - arrowPad - minTextW
+            canvas.drawLine(lx, ly, lx - lineLen, ly, highLowPaint)
+            canvas.drawText(minText, textLeft.coerceAtLeast(paddingLeft + 4f * density), ly + 3.5f * density, highLowTextPaint)
+        } else {
+            // 靠近左侧：向右延伸 ── [text]
+            canvas.drawLine(lx, ly, lx + lineLen, ly, highLowPaint)
+            canvas.drawText(minText, lx + lineLen + arrowPad, ly + 3.5f * density, highLowTextPaint)
+        }
+    }
+
+    private fun drawFibonacciRetracement(canvas: Canvas, leftIdx: Int, rightIdx: Int, minP: Double, range: Double) {
+        val fib = Indicators.computeFibonacci(candles, leftIdx, rightIdx) ?: return
+
+        // 黄金口袋区间 (0.382 ~ 0.618) 填充高亮
+        val l382 = fib.levels.firstOrNull { abs(it.ratio - 0.382) < 0.01 }
+        val l618 = fib.levels.firstOrNull { abs(it.ratio - 0.618) < 0.01 }
+        if (l382 != null && l618 != null) {
+            val y382 = yOfPrice(l382.price, minP, range)
+            val y618 = yOfPrice(l618.price, minP, range)
+            val top = min(y382, y618).coerceIn(paddingTop.toFloat(), paddingTop + priceH)
+            val bot = max(y382, y618).coerceIn(paddingTop.toFloat(), paddingTop + priceH)
+            canvas.drawRect(paddingLeft.toFloat(), top, paddingLeft + chartW, bot, fibFillPaint)
+        }
+
+        // 绘制每一条斐波那契水平线及标签
+        for (lvl in fib.levels) {
+            val y = yOfPrice(lvl.price, minP, range)
+            if (y in paddingTop.toFloat()..(paddingTop + priceH)) {
+                canvas.drawLine(paddingLeft.toFloat(), y, paddingLeft + chartW, y, fibLinePaint)
+                val text = "Fib ${lvl.label} ${Fmt.price(lvl.price)}"
+                canvas.drawText(text, paddingLeft + 6f * density, y - 2.5f * density, fibTextPaint)
+            }
+        }
+    }
+
+    private fun drawSuperTrend(canvas: Canvas, leftIdx: Int, rightIdx: Int, cw: Float, minP: Double, range: Double) {
+        val st = superTrendResult ?: return
+        if (st.value.isEmpty()) return
+
+        var prevX = 0f
+        var prevY = 0f
+        var prevTrend = 0
+
+        for (i in leftIdx..rightIdx) {
+            if (i >= st.value.size || st.value[i] <= 0f) continue
+            val x = xOfIndex(i.toFloat())
+            val y = yOfPrice(st.value[i].toDouble(), minP, range)
+            val curTrend = st.trend[i]
+
+            if (prevTrend != 0 && prevTrend == curTrend) {
+                val paint = if (curTrend == 1) superTrendUpPaint else superTrendDnPaint
+                canvas.drawLine(prevX, prevY, x, y, paint)
+            }
+            prevX = x
+            prevY = y
+            prevTrend = curTrend
+        }
+    }
+
+    private fun drawRulerOverlay(canvas: Canvas, minP: Double, range: Double) {
+        if (rulerStartIdx < 0 || rulerEndIdx < 0 || candles.isEmpty()) return
+        val sIdx = rulerStartIdx.coerceIn(candles.indices)
+        val eIdx = rulerEndIdx.coerceIn(candles.indices)
+        val minIdx = min(sIdx, eIdx)
+        val maxIdx = max(sIdx, eIdx)
+
+        val x1 = xOfIndex(sIdx.toFloat())
+        val x2 = xOfIndex(eIdx.toFloat())
+        val y1 = yOfPrice(rulerStartPrice, minP, range)
+        val y2 = yOfPrice(rulerEndPrice, minP, range)
+
+        val rectL = min(x1, x2)
+        val rectR = max(x1, x2)
+        val rectT = min(y1, y2)
+        val rectB = max(y1, y2)
+
+        val deltaP = rulerEndPrice - rulerStartPrice
+        val pct = if (rulerStartPrice != 0.0) (deltaP / rulerStartPrice) * 100.0 else 0.0
+        val isUp = deltaP >= 0.0
+
+        // 1. 区域半透明填充与边框
+        val fillCol = if (isUp) (Palette.up(context) and 0x00FFFFFF) or 0x22000000 else (Palette.down(context) and 0x00FFFFFF) or 0x22000000
+        rulerBgPaint.color = fillCol
+        val borderCol = if (isUp) Palette.up(context) else Palette.down(context)
+        rulerBorderPaint.color = (borderCol and 0x00FFFFFF) or 0x99000000.toInt()
+        canvas.drawRect(rectL, rectT, rectR, rectB, rulerBgPaint)
+        canvas.drawRect(rectL, rectT, rectR, rectB, rulerBorderPaint)
+
+        // 2. 对角连线与端点圆
+        rulerLinePaint.color = borderCol
+        canvas.drawLine(x1, y1, x2, y2, rulerLinePaint)
+        canvas.drawCircle(x1, y1, 4f * density, rulerLinePaint)
+        canvas.drawCircle(x2, y2, 4f * density, rulerLinePaint)
+
+        // 3. 计算区间统计数据
+        val barCount = maxIdx - minIdx + 1
+        var totalVol = 0.0
+        for (i in minIdx..maxIdx) {
+            totalVol += candles[i].vol
+        }
+        val startTime = candles[minIdx].ts
+        val endTime = candles[maxIdx].ts
+        val durationMins = (abs(endTime - startTime) / (60 * 1000)).toInt()
+        val durationStr = if (durationMins >= 1440) "${durationMins / 1440}d ${(durationMins % 1440) / 60}h" else if (durationMins >= 60) "${durationMins / 60}h ${durationMins % 60}m" else "${durationMins}m"
+
+        val line1 = "${if (isUp) "+" else ""}${Fmt.price(deltaP)} (${String.format(Locale.US, "%+.2f%%", pct)})"
+        val line2 = "$barCount 根K线 ($durationStr)  |  量 ${Fmt.vol(totalVol)}"
+
+        // 4. 绘制信息卡片
+        val padH = 8f * density
+        val padV = 6f * density
+        val w1 = rulerTextPaint.measureText(line1)
+        val w2 = rulerTextPaint.measureText(line2)
+        val cardW = max(w1, w2) + padH * 2f
+        val lineH = rulerTextPaint.descent() - rulerTextPaint.ascent()
+        val cardH = lineH * 2f + 4f * density + padV * 2f
+
+        var cardX = ((x1 + x2) / 2f - cardW / 2f).coerceIn(paddingLeft + 4f * density, paddingLeft + chartW - cardW - 4f * density)
+        var cardY = (min(y1, y2) - cardH - 8f * density)
+        if (cardY < paddingTop + 4f * density) {
+            cardY = max(y1, y2) + 8f * density
+        }
+        if (cardY + cardH > paddingTop + priceH) {
+            cardY = paddingTop + priceH - cardH - 4f * density
+        }
+
+        val cardRect = RectF(cardX, cardY, cardX + cardW, cardY + cardH)
+        canvas.drawRoundRect(cardRect, 4f * density, 4f * density, rulerCardBgPaint)
+        canvas.drawRoundRect(cardRect, 4f * density, 4f * density, rulerCardBorderPaint)
+
+        rulerTextPaint.color = borderCol
+        canvas.drawText(line1, cardX + padH, cardY + padV - rulerTextPaint.ascent(), rulerTextPaint)
+        rulerTextPaint.color = if ((context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES) 0xFFCBD5E1.toInt() else 0xFF475569.toInt()
+        canvas.drawText(line2, cardX + padH, cardY + padV + lineH + 4f * density - rulerTextPaint.ascent(), rulerTextPaint)
+    }
+
     // ---------- 工具与指标重算 ----------
 
     private fun computeAllIndicators() {
@@ -1117,10 +1594,23 @@ class CandleChartView @JvmOverloads constructor(
         ma2 = Indicators.computeMa(candles, p2)
         ma3 = Indicators.computeMa(candles, p3)
 
+        // EMA
+        val ep1 = Prefs.getEma1Period(context)
+        val ep2 = Prefs.getEma2Period(context)
+        val ep3 = Prefs.getEma3Period(context)
+        ema1 = Indicators.computeEma(candles, ep1)
+        ema2 = Indicators.computeEma(candles, ep2)
+        ema3 = Indicators.computeEma(candles, ep3)
+
         // BOLL
         val bN = Prefs.getBollN(context)
         val bK = Prefs.getBollK(context).toDouble()
         bollResult = Indicators.computeBoll(candles, bN, bK)
+
+        // SuperTrend
+        val stAtr = Prefs.getSuperTrendAtr(context)
+        val stFactor = Prefs.getSuperTrendFactor(context).toDouble()
+        superTrendResult = Indicators.computeSuperTrend(candles, stAtr, stFactor)
 
         // TURTLE
         val tEntry = Prefs.getTurtleEntry(context)

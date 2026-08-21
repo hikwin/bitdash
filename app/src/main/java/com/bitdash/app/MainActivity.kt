@@ -375,7 +375,11 @@ class MainActivity : BaseActivity() {
                 adapter.submit(watch.map { s ->
                     val fresh = map[s]
                     val cached = if (preferCached) adapter.cached(s) else null
-                    cached ?: fresh ?: placeholder(s)
+                    val item = cached ?: fresh ?: placeholder(s)
+                    if (item.valid) {
+                        com.bitdash.app.alert.PriceAlertManager.onPriceUpdate(this@MainActivity, item.symbol, item.last)
+                    }
+                    item
                 })
                 updateSourceLabel()
             } catch (e: Exception) {
@@ -421,6 +425,9 @@ class MainActivity : BaseActivity() {
                 val fresh = updates[items[i].symbol] ?: continue
                 if (fresh == items[i]) continue
                 items[i] = fresh
+                if (fresh.valid) {
+                    com.bitdash.app.alert.PriceAlertManager.onPriceUpdate(this@MainActivity, fresh.symbol, fresh.last)
+                }
                 notifyItemChanged(i)
             }
         }

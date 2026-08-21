@@ -52,17 +52,20 @@ object SettingsDialog {
      * 注意 REVERSE_* 需要 API 9+，全部满足 minSdk 24。
      */
     private val ORIENTATIONS = intArrayOf(
-        ActivityInfo.SCREEN_ORIENTATION_PORTRAIT,           // 0°
-        ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE,          // 90°
-        ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT,   // 180°
-        ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE,  // 270°
-        ActivityInfo.SCREEN_ORIENTATION_SENSOR              // 跟随传感器
+        ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR,          // 自动 跟随重力感应
+        ActivityInfo.SCREEN_ORIENTATION_PORTRAIT,             // 0° 固定竖屏
+        ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE,            // 90° 固定横屏
+        ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT,     // 180° 固定反向竖屏
+        ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE     // 270° 固定反向横屏
     )
 
     /**
      * @param onChanged 任一设置变更后回调，调用方据此刷新界面/重启轮询
      */
     fun show(activity: Activity, onChanged: () -> Unit) {
+        val alertCount = com.bitdash.app.alert.PriceAlertManager.getActiveCount(activity)
+        val alertLabel = if (alertCount > 0) activity.getString(R.string.price_alerts_count, alertCount) else activity.getString(R.string.price_alerts_off)
+
         val items = arrayOf(
             activity.getString(R.string.settings_theme, themeLabel(activity, Prefs.getThemeMode(activity))),
             activity.getString(R.string.settings_source, currentSourceName(activity)),
@@ -73,6 +76,7 @@ object SettingsDialog {
             activity.getString(R.string.settings_realtime, rtLabel(activity, Prefs.getRtScope(activity))),
             activity.getString(R.string.settings_orientation, orientationLabel(activity, Prefs.getOrientation(activity))),
             activity.getString(R.string.settings_keep_screen_on, keepScreenOnLabel(activity, Prefs.getKeepScreenOn(activity))),
+            activity.getString(R.string.settings_price_alerts, alertLabel),
             activity.getString(R.string.settings_floating, floatingLabel(activity))
         )
 
@@ -89,7 +93,8 @@ object SettingsDialog {
                     6 -> showRealtimePicker(activity, onChanged)
                     7 -> showOrientationPicker(activity, onChanged)
                     8 -> showKeepScreenOnPicker(activity, onChanged)
-                    9 -> showFloatingSettingsPicker(activity, onChanged)
+                    9 -> com.bitdash.app.alert.PriceAlertDialog.show(activity) { onChanged() }
+                    10 -> showFloatingSettingsPicker(activity, onChanged)
                 }
             }
             .setNegativeButton(android.R.string.cancel, null)
@@ -348,8 +353,18 @@ object SettingsDialog {
     // ---------- 屏幕方向 ----------
 
     private fun showOrientationPicker(activity: Activity, onChanged: () -> Unit) {
+        val hasSensor = Prefs.hasGravitySensor(activity)
         val current = Prefs.getOrientation(activity)
-        val labels = ORIENTATIONS.map { orientationLabel(activity, it) }.toTypedArray()
+        val labels = ORIENTATIONS.map { opt ->
+            val baseLabel = orientationLabel(activity, opt)
+            val isSensorOpt = (opt == ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR || opt == ActivityInfo.SCREEN_ORIENTATION_SENSOR)
+            if (isSensorOpt && !hasSensor) {
+                baseLabel + activity.getString(R.string.orientation_no_sensor)
+            } else {
+                baseLabel
+            }
+        }.toTypedArray()
+
         var checked = ORIENTATIONS.indexOfFirst { it == current }
         if (checked < 0) checked = 0
 
@@ -357,6 +372,13 @@ object SettingsDialog {
             .setTitle(R.string.settings_orientation_title)
             .setSingleChoiceItems(labels, checked) { dialog, which ->
                 val newOrientation = ORIENTATIONS[which]
+                val isSensorOpt = (newOrientation == ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR || newOrientation == ActivityInfo.SCREEN_ORIENTATION_SENSOR)
+
+                if (isSensorOpt && !hasSensor) {
+                    Toast.makeText(activity, R.string.orientation_sensor_unsupported, Toast.LENGTH_SHORT).show()
+                    return@setSingleChoiceItems
+                }
+
                 Prefs.saveOrientation(activity, newOrientation)
                 activity.requestedOrientation = newOrientation
                 dialog.dismiss()
@@ -372,7 +394,7 @@ object SettingsDialog {
             ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE -> R.string.orientation_90
             ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT -> R.string.orientation_180
             ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE -> R.string.orientation_270
-            ActivityInfo.SCREEN_ORIENTATION_SENSOR -> R.string.orientation_auto
+            ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR, ActivityInfo.SCREEN_ORIENTATION_SENSOR -> R.string.orientation_auto
             else -> R.string.orientation_0
         }
     )

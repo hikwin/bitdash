@@ -53,6 +53,9 @@
     <string name="settings_realtime">实时行情：%1$s</string>
     <string name="settings_orientation">屏幕方向：%1$s</string>
     <string name="settings_keep_screen_on">屏幕常亮：%1$s</string>
+    <string name="settings_price_alerts">价格预警与异动：%1$s</string>
+    <string name="price_alerts_count">已启用 %1$d 条</string>
+    <string name="price_alerts_off">未设置</string>
     <string name="settings_theme_title">外观主题</string>
     <string name="theme_dark">夜间模式（深色，默认）</string>
     <string name="theme_light">日间模式（浅色/亮色）</string>
@@ -93,11 +96,13 @@
     <string name="rt_badge">实时</string>
     <string name="rt_supported_by">当前源 %1$s 支持实时推送</string>
     <string name="rt_unsupported_by">当前源 %1$s 不支持实时推送，选择后仍按刷新间隔轮询</string>
-    <string name="orientation_0">0°  竖屏</string>
-    <string name="orientation_90">90°  横屏</string>
-    <string name="orientation_180">180°  反向竖屏</string>
-    <string name="orientation_270">270°  反向横屏</string>
+    <string name="orientation_0">0°  固定竖屏</string>
+    <string name="orientation_90">90°  固定横屏</string>
+    <string name="orientation_180">180°  固定反向竖屏</string>
+    <string name="orientation_270">270°  固定反向横屏</string>
     <string name="orientation_auto">自动  跟随重力感应</string>
+    <string name="orientation_no_sensor">（该设备无重力传感器）</string>
+    <string name="orientation_sensor_unsupported">当前设备未检测到重力传感器，无法使用自动感应</string>
 
     <!-- 悬浮窗 -->
     <string name="settings_floating">桌面悬浮窗：%1$s</string>

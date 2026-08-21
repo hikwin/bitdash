@@ -85,6 +85,64 @@
                 android:textSize="14sp" />
         </LinearLayout>
 
+        <!-- 1.2 EMA 均线 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="EMA 指数移动平均线周期 (1 ~ 200)"
+            android:textColor="#06B6D4"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/etEma1"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_input_box"
+                android:gravity="center"
+                android:hint="EMA1 (7)"
+                android:inputType="number"
+                android:textColor="@color/text_main"
+                android:textColorHint="@color/text_dim"
+                android:textSize="14sp" />
+
+            <EditText
+                android:id="@+id/etEma2"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_input_box"
+                android:gravity="center"
+                android:hint="EMA2 (25)"
+                android:inputType="number"
+                android:textColor="@color/text_main"
+                android:textColorHint="@color/text_dim"
+                android:textSize="14sp" />
+
+            <EditText
+                android:id="@+id/etEma3"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_input_box"
+                android:gravity="center"
+                android:hint="EMA3 (99)"
+                android:inputType="number"
+                android:textColor="@color/text_main"
+                android:textColorHint="@color/text_dim"
+                android:textSize="14sp" />
+        </LinearLayout>
+
         <!-- 2. BOLL 布林带 -->
         <TextView
             android:layout_width="wrap_content"
@@ -123,6 +181,50 @@
                 android:background="@drawable/bg_input_box"
                 android:gravity="center"
                 android:hint="倍数 K (2.0)"
+                android:inputType="numberDecimal"
+                android:textColor="@color/text_main"
+                android:textColorHint="@color/text_dim"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <!-- 2.5 SuperTrend 超级趋势 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="SuperTrend 超级趋势 (ATR周期 / 乘数因子)"
+            android:textColor="@color/brand"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/etSuperTrendAtr"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_input_box"
+                android:gravity="center"
+                android:hint="ATR 周期 (10)"
+                android:inputType="number"
+                android:textColor="@color/text_main"
+                android:textColorHint="@color/text_dim"
+                android:textSize="14sp" />
+
+            <EditText
+                android:id="@+id/etSuperTrendFactor"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_input_box"
+                android:gravity="center"
+                android:hint="乘数 Factor (3.0)"
                 android:inputType="numberDecimal"
                 android:textColor="@color/text_main"
                 android:textColorHint="@color/text_dim"

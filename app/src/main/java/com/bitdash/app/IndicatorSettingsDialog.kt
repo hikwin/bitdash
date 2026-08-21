@@ -20,8 +20,15 @@ object IndicatorSettingsDialog {
         val etMa2 = view.findViewById<EditText>(R.id.etMa2)
         val etMa3 = view.findViewById<EditText>(R.id.etMa3)
 
+        val etEma1 = view.findViewById<EditText>(R.id.etEma1)
+        val etEma2 = view.findViewById<EditText>(R.id.etEma2)
+        val etEma3 = view.findViewById<EditText>(R.id.etEma3)
+
         val etBollN = view.findViewById<EditText>(R.id.etBollN)
         val etBollK = view.findViewById<EditText>(R.id.etBollK)
+
+        val etSuperTrendAtr = view.findViewById<EditText>(R.id.etSuperTrendAtr)
+        val etSuperTrendFactor = view.findViewById<EditText>(R.id.etSuperTrendFactor)
 
         val etTurtleEntry = view.findViewById<EditText>(R.id.etTurtleEntry)
         val etTurtleExit = view.findViewById<EditText>(R.id.etTurtleExit)
@@ -44,8 +51,15 @@ object IndicatorSettingsDialog {
             etMa2.setText(Prefs.getMa2Period(activity).toString())
             etMa3.setText(Prefs.getMa3Period(activity).toString())
 
+            etEma1.setText(Prefs.getEma1Period(activity).toString())
+            etEma2.setText(Prefs.getEma2Period(activity).toString())
+            etEma3.setText(Prefs.getEma3Period(activity).toString())
+
             etBollN.setText(Prefs.getBollN(activity).toString())
             etBollK.setText(Prefs.getBollK(activity).toString())
+
+            etSuperTrendAtr.setText(Prefs.getSuperTrendAtr(activity).toString())
+            etSuperTrendFactor.setText(Prefs.getSuperTrendFactor(activity).toString())
 
             etTurtleEntry.setText(Prefs.getTurtleEntry(activity).toString())
             etTurtleExit.setText(Prefs.getTurtleExit(activity).toString())
@@ -85,8 +99,15 @@ object IndicatorSettingsDialog {
             val ma2 = etMa2.text.toString().toIntOrNull() ?: Prefs.DEFAULT_MA2
             val ma3 = etMa3.text.toString().toIntOrNull() ?: Prefs.DEFAULT_MA3
 
+            val ema1 = etEma1.text.toString().toIntOrNull() ?: Prefs.DEFAULT_EMA1
+            val ema2 = etEma2.text.toString().toIntOrNull() ?: Prefs.DEFAULT_EMA2
+            val ema3 = etEma3.text.toString().toIntOrNull() ?: Prefs.DEFAULT_EMA3
+
             val bollN = etBollN.text.toString().toIntOrNull() ?: Prefs.DEFAULT_BOLL_N
             val bollK = etBollK.text.toString().toFloatOrNull() ?: Prefs.DEFAULT_BOLL_K
+
+            val stAtr = etSuperTrendAtr.text.toString().toIntOrNull() ?: Prefs.DEFAULT_SUPERTREND_ATR
+            val stFactor = etSuperTrendFactor.text.toString().toFloatOrNull() ?: Prefs.DEFAULT_SUPERTREND_FACTOR
 
             val turtleEntry = etTurtleEntry.text.toString().toIntOrNull() ?: Prefs.DEFAULT_TURTLE_ENTRY
             val turtleExit = etTurtleExit.text.toString().toIntOrNull() ?: Prefs.DEFAULT_TURTLE_EXIT
@@ -107,7 +128,9 @@ object IndicatorSettingsDialog {
             Prefs.saveIndicatorParams(
                 activity,
                 ma1, ma2, ma3,
+                ema1, ema2, ema3,
                 bollN, bollK,
+                stAtr, stFactor,
                 turtleEntry, turtleExit, turtleAtr,
                 macdFast, macdSlow, macdSig,
                 rsi1, rsi2, rsi3,

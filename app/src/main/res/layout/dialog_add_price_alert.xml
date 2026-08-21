@@ -1,0 +1,446 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/bg"
+    android:overScrollMode="never">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:id="@+id/tvAddAlertTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="新增预警规则"
+            android:textColor="@color/text_main"
+            android:textSize="17sp"
+            android:textStyle="bold" />
+
+        <!-- 模式切换：目标价 vs 异动 -->
+        <RadioGroup
+            android:id="@+id/rgAlertMode"
+            android:layout_width="match_parent"
+            android:layout_height="36dp"
+            android:layout_marginTop="12dp"
+            android:orientation="horizontal">
+
+            <RadioButton
+                android:id="@+id/rbModeTarget"
+                style="@style/TfButton"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:checked="true"
+                android:text="🎯 目标价格提醒" />
+
+            <RadioButton
+                android:id="@+id/rbModeVolatility"
+                style="@style/TfButton"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="⚡ 快速异动预警" />
+        </RadioGroup>
+
+        <!-- 币种选择 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:text="监控币种"
+            android:textColor="@color/text_muted"
+            android:textSize="12sp" />
+
+        <EditText
+            android:id="@+id/etAlertSymbol"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:layout_marginTop="4dp"
+            android:background="@drawable/bg_input_box"
+            android:hint="输入币种（如 BTC-USDT）"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:singleLine="true"
+            android:textColor="@color/text_main"
+            android:textColorHint="@color/text_dim"
+            android:textSize="13sp" />
+
+        <!-- 快捷币种选择横向流 -->
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:id="@+id/layoutQuickCoins"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal" />
+        </HorizontalScrollView>
+
+        <TextView
+            android:id="@+id/tvCurrentRefPrice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textColor="@color/text_dim"
+            android:textSize="11sp"
+            tools:text="当前参考价: $68,231.50" />
+
+        <!-- ==================== 目标价模式容器 ==================== -->
+        <LinearLayout
+            android:id="@+id/layoutTargetMode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="触发条件"
+                android:textColor="@color/text_muted"
+                android:textSize="12sp" />
+
+            <RadioGroup
+                android:id="@+id/rgTargetDirection"
+                android:layout_width="match_parent"
+                android:layout_height="34dp"
+                android:layout_marginTop="4dp"
+                android:orientation="horizontal">
+
+                <RadioButton
+                    android:id="@+id/rbTargetAbove"
+                    style="@style/TfButton"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:checked="true"
+                    android:text="🚀 上涨突破 (≥)" />
+
+                <RadioButton
+                    android:id="@+id/rbTargetBelow"
+                    style="@style/TfButton"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:text="🔻 下跌跌破 (≤)" />
+            </RadioGroup>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="目标价格 (USDT)"
+                android:textColor="@color/text_muted"
+                android:textSize="12sp" />
+
+            <EditText
+                android:id="@+id/etTargetPrice"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:layout_marginTop="4dp"
+                android:background="@drawable/bg_input_box"
+                android:hint="输入目标价格"
+                android:inputType="numberDecimal"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:singleLine="true"
+                android:textColor="@color/text_main"
+                android:textColorHint="@color/text_dim"
+                android:textSize="13sp" />
+
+            <!-- 快捷百分比微调按钮 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/btnQuickMinus5"
+                    style="@style/TfButton"
+                    android:layout_width="0dp"
+                    android:layout_height="28dp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="-5%"
+                    android:textSize="11sp" />
+
+                <TextView
+                    android:id="@+id/btnQuickMinus2"
+                    style="@style/TfButton"
+                    android:layout_width="0dp"
+                    android:layout_height="28dp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="-2%"
+                    android:textSize="11sp" />
+
+                <TextView
+                    android:id="@+id/btnQuickPlus2"
+                    style="@style/TfButton"
+                    android:layout_width="0dp"
+                    android:layout_height="28dp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="+2%"
+                    android:textSize="11sp" />
+
+                <TextView
+                    android:id="@+id/btnQuickPlus5"
+                    style="@style/TfButton"
+                    android:layout_width="0dp"
+                    android:layout_height="28dp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="+5%"
+                    android:textSize="11sp" />
+
+                <TextView
+                    android:id="@+id/btnQuickPlus10"
+                    style="@style/TfButton"
+                    android:layout_width="0dp"
+                    android:layout_height="28dp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="+10%"
+                    android:textSize="11sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ==================== 波动异动模式容器 ==================== -->
+        <LinearLayout
+            android:id="@+id/layoutVolatilityMode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="时间窗口"
+                android:textColor="@color/text_muted"
+                android:textSize="12sp" />
+
+            <RadioGroup
+                android:id="@+id/rgVolWindow"
+                android:layout_width="match_parent"
+                android:layout_height="32dp"
+                android:layout_marginTop="4dp"
+                android:orientation="horizontal">
+
+                <RadioButton
+                    android:id="@+id/rbWin1m"
+                    style="@style/TfButton"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:text="1分钟" />
+
+                <RadioButton
+                    android:id="@+id/rbWin3m"
+                    style="@style/TfButton"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:text="3分钟" />
+
+                <RadioButton
+                    android:id="@+id/rbWin5m"
+                    style="@style/TfButton"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:checked="true"
+                    android:text="5分钟" />
+
+                <RadioButton
+                    android:id="@+id/rbWin15m"
+                    style="@style/TfButton"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:text="15分钟" />
+
+                <RadioButton
+                    android:id="@+id/rbWin30m"
+                    style="@style/TfButton"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:text="30分钟" />
+            </RadioGroup>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="波动阈值 (%)"
+                android:textColor="@color/text_muted"
+                android:textSize="12sp" />
+
+            <EditText
+                android:id="@+id/etVolThreshold"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:layout_marginTop="4dp"
+                android:background="@drawable/bg_input_box"
+                android:hint="波动幅度百分比（如 3.0）"
+                android:inputType="numberDecimal"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:singleLine="true"
+                android:text="3.0"
+                android:textColor="@color/text_main"
+                android:textSize="13sp" />
+
+            <!-- 阈值快捷按钮 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/btnVolThresh2"
+                    style="@style/TfButton"
+                    android:layout_width="0dp"
+                    android:layout_height="28dp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="±2%"
+                    android:textSize="11sp" />
+
+                <TextView
+                    android:id="@+id/btnVolThresh3"
+                    style="@style/TfButton"
+                    android:layout_width="0dp"
+                    android:layout_height="28dp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="±3%"
+                    android:textSize="11sp" />
+
+                <TextView
+                    android:id="@+id/btnVolThresh5"
+                    style="@style/TfButton"
+                    android:layout_width="0dp"
+                    android:layout_height="28dp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="±5%"
+                    android:textSize="11sp" />
+
+                <TextView
+                    android:id="@+id/btnVolThresh8"
+                    style="@style/TfButton"
+                    android:layout_width="0dp"
+                    android:layout_height="28dp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="±8%"
+                    android:textSize="11sp" />
+
+                <TextView
+                    android:id="@+id/btnVolThresh10"
+                    style="@style/TfButton"
+                    android:layout_width="0dp"
+                    android:layout_height="28dp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="±10%"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="异动方向"
+                android:textColor="@color/text_muted"
+                android:textSize="12sp" />
+
+            <RadioGroup
+                android:id="@+id/rgVolDirection"
+                android:layout_width="match_parent"
+                android:layout_height="34dp"
+                android:layout_marginTop="4dp"
+                android:orientation="horizontal">
+
+                <RadioButton
+                    android:id="@+id/rbVolBoth"
+                    style="@style/TfButton"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:checked="true"
+                    android:text="⚡ 双向异动" />
+
+                <RadioButton
+                    android:id="@+id/rbVolSurge"
+                    style="@style/TfButton"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:text="🚀 仅暴涨" />
+
+                <RadioButton
+                    android:id="@+id/rbVolPlunge"
+                    style="@style/TfButton"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:text="🔻 仅暴跌" />
+            </RadioGroup>
+        </LinearLayout>
+
+        <!-- 重复触发设置 -->
+        <CheckBox
+            android:id="@+id/cbAlertRepeat"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:checked="true"
+            android:text="重复提醒（每次满足均通知，内置冷却防频繁轰炸）"
+            android:textColor="@color/text_main"
+            android:textSize="12sp" />
+
+        <!-- 底部按钮 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:gravity="end"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnCancelAddAlert"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="38dp"
+                android:text="@android:string/cancel"
+                android:textColor="@color/text_muted" />
+
+            <Button
+                android:id="@+id/btnSaveAlert"
+                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="38dp"
+                android:layout_marginStart="8dp"
+                android:backgroundTint="@color/brand"
+                android:text="保存并启用"
+                android:textColor="#000000"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>

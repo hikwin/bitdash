@@ -175,6 +175,7 @@
             android:id="@+id/layoutIndicators"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:baselineAligned="false"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
@@ -184,6 +185,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:gravity="center_vertical"
+                android:includeFontPadding="false"
                 android:paddingStart="4dp"
                 android:paddingEnd="4dp"
                 android:text="MA5"
@@ -196,6 +198,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:gravity="center_vertical"
+                android:includeFontPadding="false"
                 android:paddingStart="4dp"
                 android:paddingEnd="4dp"
                 android:text="MA10"
@@ -208,6 +211,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:gravity="center_vertical"
+                android:includeFontPadding="false"
                 android:paddingStart="4dp"
                 android:paddingEnd="4dp"
                 android:text="MA20"
@@ -216,10 +220,24 @@
                 android:textStyle="bold" />
 
             <TextView
+                android:id="@+id/tvEma"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:includeFontPadding="false"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                android:text="EMA"
+                android:textColor="#06B6D4"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+            <TextView
                 android:id="@+id/tvBoll"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:gravity="center_vertical"
+                android:includeFontPadding="false"
                 android:paddingStart="4dp"
                 android:paddingEnd="4dp"
                 android:text="BOLL"
@@ -227,21 +245,11 @@
                 android:textSize="11sp"
                 android:textStyle="bold" />
 
-            <TextView
-                android:id="@+id/tvTurtle"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:gravity="center_vertical"
-                android:paddingStart="4dp"
-                android:paddingEnd="4dp"
-                android:text="TURTLE"
-                android:textColor="@color/turtle_up"
-                android:textSize="11sp"
-                android:textStyle="bold" />
-
             <View
+                android:id="@+id/vIndicatorDivider"
                 android:layout_width="1dp"
                 android:layout_height="12dp"
+                android:layout_gravity="center_vertical"
                 android:layout_marginStart="4dp"
                 android:layout_marginEnd="4dp"
                 android:background="@color/border" />
@@ -252,6 +260,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:gravity="center_vertical"
+                android:includeFontPadding="false"
                 android:paddingStart="4dp"
                 android:paddingEnd="4dp"
                 android:text="VOL"
@@ -264,47 +273,70 @@
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:gravity="center_vertical"
+                android:includeFontPadding="false"
                 android:paddingStart="4dp"
                 android:paddingEnd="4dp"
                 android:text="MACD"
                 android:textColor="@color/text_main"
                 android:textSize="11sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                android:visibility="gone" />
 
             <TextView
                 android:id="@+id/tvRsi"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:gravity="center_vertical"
+                android:includeFontPadding="false"
                 android:paddingStart="4dp"
                 android:paddingEnd="4dp"
                 android:text="RSI"
                 android:textColor="@color/text_main"
                 android:textSize="11sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                android:visibility="gone" />
 
             <TextView
                 android:id="@+id/tvKdj"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:gravity="center_vertical"
+                android:includeFontPadding="false"
                 android:paddingStart="4dp"
                 android:paddingEnd="4dp"
                 android:text="KDJ"
                 android:textColor="@color/text_main"
                 android:textSize="11sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                android:visibility="gone" />
 
-            <Space
+            <!-- 弹性空白占位，将 MORE 与设置齿轮推至右侧 -->
+            <View
+                android:id="@+id/vIndicatorSpace"
                 android:layout_width="0dp"
-                android:layout_height="1dp"
+                android:layout_height="match_parent"
                 android:layout_weight="1" />
 
-            <!-- 最右侧设置齿轮按钮 -->
+            <!-- MORE 下拉按钮 -->
+            <TextView
+                android:id="@+id/tvMoreIndicators"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:includeFontPadding="false"
+                android:paddingStart="4dp"
+                android:paddingEnd="6dp"
+                android:text="MORE ▾"
+                android:textColor="@color/brand"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+            <!-- 设置齿轮按钮 -->
             <ImageButton
                 android:id="@+id/btnIndicatorSettings"
                 android:layout_width="26dp"
                 android:layout_height="26dp"
+                android:layout_gravity="center_vertical"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="指标参数设置"
                 android:padding="3dp"

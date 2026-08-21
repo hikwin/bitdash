@@ -43,6 +43,26 @@ object Indicators {
         val atr: FloatArray        // 海龟真实波幅 N 值
     )
 
+    data class SuperTrendResult(
+        val trend: IntArray,       // 1 = 多头/上升趋势, -1 = 空头/下降趋势
+        val value: FloatArray,     // 当前超级趋势线数值
+        val upperBand: FloatArray, // 上轨阻力
+        val lowerBand: FloatArray  // 下轨支撑
+    )
+
+    data class FibLevel(
+        val ratio: Double,
+        val label: String,
+        val price: Double
+    )
+
+    data class FibResult(
+        val highPrice: Double,
+        val lowPrice: Double,
+        val isUpTrend: Boolean,
+        val levels: List<FibLevel>
+    )
+
     /**
      * 计算单条简单移动平均线 (SMA)
      * 未定义区域（数据不足 period 根）填充 0f
@@ -304,5 +324,161 @@ object Indicators {
         }
 
         return TurtleResult(upper, lower, exitLong, exitShort, atr)
+    }
+
+    /**
+     * 计算指数移动平均线 (EMA)
+     * EMA_t = Price_t * alpha + EMA_{t-1} * (1 - alpha), 其中 alpha = 2 / (period + 1)
+     */
+    fun computeEma(candles: List<Candle>, period: Int): FloatArray {
+        val n = candles.size
+        val out = FloatArray(n)
+        if (n == 0 || period <= 0) return out
+
+        val alpha = 2.0 / (period + 1.0)
+        var ema = 0.0
+
+        for (i in 0 until n) {
+            val close = candles[i].close
+            if (i == 0) {
+                ema = close
+            } else {
+                ema = close * alpha + ema * (1.0 - alpha)
+            }
+            if (i >= period - 1) {
+                out[i] = ema.toFloat()
+            }
+        }
+        return out
+    }
+
+    /**
+     * 计算 SuperTrend（超级趋势指标）
+     * - atrPeriod: ATR 周期（默认 10）
+     * - factor: ATR 乘数因子（默认 3.0）
+     */
+    fun computeSuperTrend(
+        candles: List<Candle>,
+        atrPeriod: Int = 10,
+        factor: Double = 3.0
+    ): SuperTrendResult {
+        val n = candles.size
+        val trend = IntArray(n)
+        val value = FloatArray(n)
+        val upperBand = FloatArray(n)
+        val lowerBand = FloatArray(n)
+        if (n == 0) return SuperTrendResult(trend, value, upperBand, lowerBand)
+
+        // 1. 计算 ATR
+        val atr = FloatArray(n)
+        var curAtr = 0.0
+        for (i in 0 until n) {
+            val c = candles[i]
+            val tr = if (i == 0) {
+                c.high - c.low
+            } else {
+                val prevClose = candles[i - 1].close
+                max(c.high - c.low, max(abs(c.high - prevClose), abs(c.low - prevClose)))
+            }
+            curAtr = if (i == 0) tr else (curAtr * (atrPeriod - 1) + tr) / atrPeriod
+            atr[i] = curAtr.toFloat()
+        }
+
+        // 2. 迭代计算 SuperTrend
+        var prevFinalUpper = 0.0
+        var prevFinalLower = 0.0
+        var prevTrend = 1 // 1 = 多头, -1 = 空头
+
+        for (i in 0 until n) {
+            val c = candles[i]
+            val hl2 = (c.high + c.low) / 2.0
+            val curAtrVal = atr[i].toDouble()
+
+            val basicUpper = hl2 + factor * curAtrVal
+            val basicLower = hl2 - factor * curAtrVal
+
+            var finalUpper = basicUpper
+            var finalLower = basicLower
+
+            if (i > 0) {
+                val prevClose = candles[i - 1].close
+                finalUpper = if (basicUpper < prevFinalUpper || prevClose > prevFinalUpper) basicUpper else prevFinalUpper
+                finalLower = if (basicLower > prevFinalLower || prevClose < prevFinalLower) basicLower else prevFinalLower
+            }
+
+            val curTrend: Int
+            if (i == 0) {
+                curTrend = 1
+            } else {
+                curTrend = when {
+                    prevTrend == 1 && c.close < prevFinalLower -> -1
+                    prevTrend == -1 && c.close > prevFinalUpper -> 1
+                    else -> prevTrend
+                }
+            }
+
+            trend[i] = curTrend
+            upperBand[i] = finalUpper.toFloat()
+            lowerBand[i] = finalLower.toFloat()
+            value[i] = (if (curTrend == 1) finalLower else finalUpper).toFloat()
+
+            prevFinalUpper = finalUpper
+            prevFinalLower = finalLower
+            prevTrend = curTrend
+        }
+
+        return SuperTrendResult(trend, value, upperBand, lowerBand)
+    }
+
+    /**
+     * 计算自动斐波那契回调波段 (Auto Fibonacci Retracement)
+     */
+    fun computeFibonacci(candles: List<Candle>, startIndex: Int, endIndex: Int): FibResult? {
+        val s = startIndex.coerceAtLeast(0)
+        val e = endIndex.coerceAtMost(candles.size - 1)
+        if (s >= e || candles.isEmpty()) return null
+
+        var maxHigh = -Double.MAX_VALUE
+        var minLow = Double.MAX_VALUE
+        var highIdx = s
+        var lowIdx = s
+
+        for (i in s..e) {
+            val c = candles[i]
+            if (c.high > maxHigh) {
+                maxHigh = c.high
+                highIdx = i
+            }
+            if (c.low < minLow) {
+                minLow = c.low
+                lowIdx = i
+            }
+        }
+
+        if (maxHigh <= minLow) return null
+
+        val isUpTrend = lowIdx <= highIdx // 先出现低点后出现高点
+        val diff = maxHigh - minLow
+
+        val ratios = listOf(
+            0.0 to "0.0%",
+            0.236 to "23.6%",
+            0.382 to "38.2%",
+            0.500 to "50.0%",
+            0.618 to "61.8%",
+            0.786 to "78.6%",
+            1.000 to "100.0%"
+        )
+
+        val levels = ratios.map { (r, name) ->
+            val p = if (isUpTrend) {
+                maxHigh - diff * r
+            } else {
+                minLow + diff * r
+            }
+            FibLevel(r, name, p)
+        }
+
+        return FibResult(maxHigh, minLow, isUpTrend, levels)
     }
 }

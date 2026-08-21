@@ -5,6 +5,8 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.media.RingtoneManager
+import android.net.Uri
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -16,8 +18,8 @@ import kotlin.math.abs
 
 object PriceAlertManager {
 
-    private const val CHANNEL_ID = "bitdash_price_alerts"
-    private const val CHANNEL_NAME = "行情预警与异动提醒"
+    private const val CHANNEL_ID_DEFAULT = "bitdash_price_alerts_v2"
+    private const val CHANNEL_ID_SILENT = "bitdash_price_alerts_silent"
     private const val DEFAULT_COOLDOWN_MS = 5 * 60 * 1000L // 默认冷却 5 分钟
 
     data class PricePoint(val ts: Long, val price: Double)
@@ -70,6 +72,9 @@ object PriceAlertManager {
         val idx = list.indexOfFirst { it.id == alertId }
         if (idx >= 0) {
             list[idx].enabled = enabled
+            if (enabled) {
+                list[idx].strongCurrentCount = 0
+            }
             alertsCache = list
             PriceAlertStore.saveAlerts(context, list)
         }
@@ -116,36 +121,96 @@ object PriceAlertManager {
             when (alert.type) {
                 AlertType.PRICE_ABOVE -> {
                     if (currentPrice >= alert.targetPrice) {
-                        val cooldown = DEFAULT_COOLDOWN_MS
-                        if (ts - alert.lastTriggeredTs >= cooldown) {
-                            sendNotification(
-                                context = context,
-                                symbol = symbol,
-                                title = "🚀 目标价上涨突破: $symbol",
-                                message = "现价: ${Fmt.price(currentPrice)} 已突破目标价: ${Fmt.price(alert.targetPrice)}",
-                                notificationId = alert.id.hashCode()
-                            )
-                            alert.lastTriggeredTs = ts
-                            alert.lastTriggeredPrice = currentPrice
-                            if (!alert.repeat) alert.enabled = false
+                        if (alert.isStrongAlert) {
+                            val intervalMs = (alert.strongIntervalSeconds * 1000L).coerceAtLeast(10_000L)
+                            if (ts - alert.lastTriggeredTs >= intervalMs && alert.strongCurrentCount < alert.strongMaxCount) {
+                                alert.strongCurrentCount++
+                                val countHeader = if (alert.strongMaxCount >= 999) "【⚡强提醒 连续提醒】" else "【⚡强提醒 第${alert.strongCurrentCount}/${alert.strongMaxCount}次】"
+                                dispatchAlert(
+                                    context = context,
+                                    symbol = symbol,
+                                    title = "$countHeader 🚀 目标价上涨突破: $symbol",
+                                    message = "现价: ${Fmt.price(currentPrice)} 已突破目标价: ${Fmt.price(alert.targetPrice)}",
+                                    price = currentPrice,
+                                    notificationId = alert.id.hashCode(),
+                                    alert = alert
+                                )
+                                alert.lastTriggeredTs = ts
+                                alert.lastTriggeredPrice = currentPrice
+                                if (!alert.repeat && alert.strongCurrentCount >= alert.strongMaxCount) {
+                                    alert.enabled = false
+                                }
+                                needSave = true
+                            }
+                        } else {
+                            if (ts - alert.lastTriggeredTs >= DEFAULT_COOLDOWN_MS) {
+                                dispatchAlert(
+                                    context = context,
+                                    symbol = symbol,
+                                    title = "🚀 目标价上涨突破: $symbol",
+                                    message = "现价: ${Fmt.price(currentPrice)} 已突破目标价: ${Fmt.price(alert.targetPrice)}",
+                                    price = currentPrice,
+                                    notificationId = alert.id.hashCode(),
+                                    alert = alert
+                                )
+                                alert.lastTriggeredTs = ts
+                                alert.lastTriggeredPrice = currentPrice
+                                if (!alert.repeat) alert.enabled = false
+                                needSave = true
+                            }
+                        }
+                    } else {
+                        // 价格回落至目标价以下，重置强提醒计数
+                        if (alert.strongCurrentCount > 0) {
+                            alert.strongCurrentCount = 0
                             needSave = true
                         }
                     }
                 }
                 AlertType.PRICE_BELOW -> {
                     if (currentPrice <= alert.targetPrice) {
-                        val cooldown = DEFAULT_COOLDOWN_MS
-                        if (ts - alert.lastTriggeredTs >= cooldown) {
-                            sendNotification(
-                                context = context,
-                                symbol = symbol,
-                                title = "🔻 目标价下跌跌破: $symbol",
-                                message = "现价: ${Fmt.price(currentPrice)} 已跌破目标价: ${Fmt.price(alert.targetPrice)}",
-                                notificationId = alert.id.hashCode()
-                            )
-                            alert.lastTriggeredTs = ts
-                            alert.lastTriggeredPrice = currentPrice
-                            if (!alert.repeat) alert.enabled = false
+                        if (alert.isStrongAlert) {
+                            val intervalMs = (alert.strongIntervalSeconds * 1000L).coerceAtLeast(10_000L)
+                            if (ts - alert.lastTriggeredTs >= intervalMs && alert.strongCurrentCount < alert.strongMaxCount) {
+                                alert.strongCurrentCount++
+                                val countHeader = if (alert.strongMaxCount >= 999) "【⚡强提醒 连续提醒】" else "【⚡强提醒 第${alert.strongCurrentCount}/${alert.strongMaxCount}次】"
+                                dispatchAlert(
+                                    context = context,
+                                    symbol = symbol,
+                                    title = "$countHeader 🔻 目标价下跌跌破: $symbol",
+                                    message = "现价: ${Fmt.price(currentPrice)} 已跌破目标价: ${Fmt.price(alert.targetPrice)}",
+                                    price = currentPrice,
+                                    notificationId = alert.id.hashCode(),
+                                    alert = alert
+                                )
+                                alert.lastTriggeredTs = ts
+                                alert.lastTriggeredPrice = currentPrice
+                                if (!alert.repeat && alert.strongCurrentCount >= alert.strongMaxCount) {
+                                    alert.enabled = false
+                                }
+                                needSave = true
+                            }
+                        } else {
+                            if (ts - alert.lastTriggeredTs >= DEFAULT_COOLDOWN_MS) {
+                                dispatchAlert(
+                                    context = context,
+                                    symbol = symbol,
+                                    title = "🔻 目标价下跌跌破: $symbol",
+                                    message = "现价: ${Fmt.price(currentPrice)} 已跌破目标价: ${Fmt.price(alert.targetPrice)}",
+                                    price = currentPrice,
+                                    notificationId = alert.id.hashCode(),
+                                    alert = alert
+                                )
+                                alert.lastTriggeredTs = ts
+                                alert.lastTriggeredPrice = currentPrice
+                                if (!alert.repeat) alert.enabled = false
+                                needSave = true
+                            }
+                        }
+                    } else {
+                        // 价格反弹至目标价以上，重置强提醒计数
+                        if (alert.strongCurrentCount > 0) {
+                            alert.strongCurrentCount = 0
                             needSave = true
                         }
                     }
@@ -163,21 +228,56 @@ object PriceAlertManager {
                             VolatilityDirection.PLUNGE -> pct <= -alert.pctThreshold
                             VolatilityDirection.BOTH -> abs(pct) >= alert.pctThreshold
                         }
-                        val cooldown = (alert.windowMinutes * 60 * 1000L).coerceAtLeast(3 * 60 * 1000L)
-                        if (isTriggered && (ts - alert.lastTriggeredTs >= cooldown)) {
-                            val dirIcon = if (pct >= 0) "⚡📈" else "⚡📉"
-                            val dirDesc = if (pct >= 0) "急涨暴涨" else "急跌暴跌"
-                            sendNotification(
-                                context = context,
-                                symbol = symbol,
-                                title = "$dirIcon $symbol ${alert.windowMinutes}分钟$dirDesc ${String.format("%+.2f%%", pct)}",
-                                message = "基准价: ${Fmt.price(oldPoint.price)} ➔ 现价: ${Fmt.price(currentPrice)}（阈值: ±${alert.pctThreshold}%）",
-                                notificationId = alert.id.hashCode()
-                            )
-                            alert.lastTriggeredTs = ts
-                            alert.lastTriggeredPrice = currentPrice
-                            if (!alert.repeat) alert.enabled = false
-                            needSave = true
+
+                        if (isTriggered) {
+                            if (alert.isStrongAlert) {
+                                val intervalMs = (alert.strongIntervalSeconds * 1000L).coerceAtLeast(10_000L)
+                                if (ts - alert.lastTriggeredTs >= intervalMs && alert.strongCurrentCount < alert.strongMaxCount) {
+                                    alert.strongCurrentCount++
+                                    val countHeader = if (alert.strongMaxCount >= 999) "【⚡强提醒】" else "【⚡强提醒 第${alert.strongCurrentCount}/${alert.strongMaxCount}次】"
+                                    val dirIcon = if (pct >= 0) "📈" else "📉"
+                                    val dirDesc = if (pct >= 0) "急涨暴涨" else "急跌暴跌"
+                                    dispatchAlert(
+                                        context = context,
+                                        symbol = symbol,
+                                        title = "$countHeader $dirIcon $symbol ${alert.windowMinutes}分钟$dirDesc ${String.format("%+.2f%%", pct)}",
+                                        message = "基准价: ${Fmt.price(oldPoint.price)} ➔ 现价: ${Fmt.price(currentPrice)}（阈值: ±${alert.pctThreshold}%）",
+                                        price = currentPrice,
+                                        notificationId = alert.id.hashCode(),
+                                        alert = alert
+                                    )
+                                    alert.lastTriggeredTs = ts
+                                    alert.lastTriggeredPrice = currentPrice
+                                    if (!alert.repeat && alert.strongCurrentCount >= alert.strongMaxCount) {
+                                        alert.enabled = false
+                                    }
+                                    needSave = true
+                                }
+                            } else {
+                                val cooldown = (alert.windowMinutes * 60 * 1000L).coerceAtLeast(3 * 60 * 1000L)
+                                if (ts - alert.lastTriggeredTs >= cooldown) {
+                                    val dirIcon = if (pct >= 0) "⚡📈" else "⚡📉"
+                                    val dirDesc = if (pct >= 0) "急涨暴涨" else "急跌暴跌"
+                                    dispatchAlert(
+                                        context = context,
+                                        symbol = symbol,
+                                        title = "$dirIcon $symbol ${alert.windowMinutes}分钟$dirDesc ${String.format("%+.2f%%", pct)}",
+                                        message = "基准价: ${Fmt.price(oldPoint.price)} ➔ 现价: ${Fmt.price(currentPrice)}（阈值: ±${alert.pctThreshold}%）",
+                                        price = currentPrice,
+                                        notificationId = alert.id.hashCode(),
+                                        alert = alert
+                                    )
+                                    alert.lastTriggeredTs = ts
+                                    alert.lastTriggeredPrice = currentPrice
+                                    if (!alert.repeat) alert.enabled = false
+                                    needSave = true
+                                }
+                            }
+                        } else {
+                            if (alert.strongCurrentCount > 0) {
+                                alert.strongCurrentCount = 0
+                                needSave = true
+                            }
                         }
                     }
                 }
@@ -190,29 +290,79 @@ object PriceAlertManager {
     }
 
     /**
-     * 发送系统通知栏通知
+     * 四大通道统一调度分发（系统通知、Toast、Webhook、HTTP接口）
+     */
+    private fun dispatchAlert(
+        context: Context,
+        symbol: String,
+        title: String,
+        message: String,
+        price: Double,
+        notificationId: Int,
+        alert: PriceAlert
+    ) {
+        // 1. 系统状态栏通知
+        if (alert.notifySystem) {
+            sendNotification(context, symbol, title, message, notificationId, alert)
+        }
+
+        // 2. 屏幕 Toast 提示
+        if (alert.notifyToast) {
+            PushSender.sendToast(context, title, message)
+        }
+
+        // 3. 自定义 Webhook 机器人 (钉钉/飞书/企微/通用)
+        if (alert.notifyWebhook) {
+            PushSender.sendWebhook(context, symbol, title, message, price)
+        }
+
+        // 4. 自定义 HTTP 接口 (GET/POST)
+        if (alert.notifyHttp) {
+            PushSender.sendHttp(context, symbol, title, message, price)
+        }
+    }
+
+    /**
+     * 发送系统通知栏通知并播放对应铃声
      */
     private fun sendNotification(
         context: Context,
         symbol: String,
         title: String,
         message: String,
-        notificationId: Int
+        notificationId: Int,
+        alert: PriceAlert
     ) {
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
 
+        val isSilent = alert.soundMode == "SILENT"
+        val channelId = if (isSilent) CHANNEL_ID_SILENT else CHANNEL_ID_DEFAULT
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            if (nm.getNotificationChannel(CHANNEL_ID) == null) {
-                val channel = NotificationChannel(
-                    CHANNEL_ID,
-                    CHANNEL_NAME,
-                    NotificationManager.IMPORTANCE_HIGH
-                ).apply {
-                    description = "数字货币价格到达目标价及快速异动波动提醒"
-                    enableLights(true)
-                    enableVibration(true)
+            if (nm.getNotificationChannel(channelId) == null) {
+                if (isSilent) {
+                    val silentChannel = NotificationChannel(
+                        CHANNEL_ID_SILENT,
+                        "行情预警 (静音)",
+                        NotificationManager.IMPORTANCE_DEFAULT
+                    ).apply {
+                        description = "数字货币价格到达目标价及异动提醒 (无铃声)"
+                        setSound(null, null)
+                        enableVibration(true)
+                    }
+                    nm.createNotificationChannel(silentChannel)
+                } else {
+                    val defaultChannel = NotificationChannel(
+                        CHANNEL_ID_DEFAULT,
+                        "行情预警 (带铃声)",
+                        NotificationManager.IMPORTANCE_HIGH
+                    ).apply {
+                        description = "数字货币价格到达目标价及异动提醒"
+                        enableLights(true)
+                        enableVibration(true)
+                    }
+                    nm.createNotificationChannel(defaultChannel)
                 }
-                nm.createNotificationChannel(channel)
             }
         }
 
@@ -232,7 +382,7 @@ object PriceAlertManager {
             }
         )
 
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+        val builder = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.ic_trending_up)
             .setContentTitle(title)
             .setContentText(message)
@@ -240,10 +390,23 @@ object PriceAlertManager {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
-            .build()
+
+        if (isSilent) {
+            builder.setSilent(true)
+        } else if (alert.soundMode == "CUSTOM" && alert.soundUri.isNotBlank()) {
+            try {
+                val uri = Uri.parse(alert.soundUri)
+                builder.setSound(uri)
+                // 确保自定义铃声在应用前台或后台均能立即发声
+                val ringtone = RingtoneManager.getRingtone(context, uri)
+                ringtone?.play()
+            } catch (_: Exception) {}
+        } else {
+            builder.setDefaults(NotificationCompat.DEFAULT_ALL)
+        }
 
         try {
-            NotificationManagerCompat.from(context).notify(notificationId, notification)
+            NotificationManagerCompat.from(context).notify(notificationId, builder.build())
         } catch (e: SecurityException) {
             e.printStackTrace()
         }

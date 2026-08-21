@@ -56,19 +56,41 @@
             android:textColor="@color/text_muted"
             android:textSize="12sp" />
 
-        <EditText
-            android:id="@+id/etAlertSymbol"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="40dp"
             android:layout_marginTop="4dp"
-            android:background="@drawable/bg_input_box"
-            android:hint="输入币种（如 BTC-USDT）"
-            android:paddingStart="10dp"
-            android:paddingEnd="10dp"
-            android:singleLine="true"
-            android:textColor="@color/text_main"
-            android:textColorHint="@color/text_dim"
-            android:textSize="13sp" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <EditText
+                android:id="@+id/etAlertSymbol"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@drawable/bg_input_box"
+                android:hint="输入或选择币种（如 BTC-USDT）"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:singleLine="true"
+                android:textColor="@color/text_main"
+                android:textColorHint="@color/text_dim"
+                android:textSize="13sp" />
+
+            <Button
+                android:id="@+id/btnSelectCoin"
+                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_marginStart="8dp"
+                android:backgroundTint="@color/bg_surface"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:text="选择 ▾"
+                android:textColor="@color/brand"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
 
         <!-- 快捷币种选择横向流 -->
         <HorizontalScrollView
@@ -401,6 +423,293 @@
                     android:layout_weight="1"
                     android:text="🔻 仅暴跌" />
             </RadioGroup>
+        </LinearLayout>
+
+        <!-- 提醒铃声设置 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:text="提醒声音"
+            android:textColor="@color/text_muted"
+            android:textSize="12sp" />
+
+        <RadioGroup
+            android:id="@+id/rgSoundMode"
+            android:layout_width="match_parent"
+            android:layout_height="34dp"
+            android:layout_marginTop="4dp"
+            android:orientation="horizontal">
+
+            <RadioButton
+                android:id="@+id/rbSoundSilent"
+                style="@style/TfButton"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:checked="true"
+                android:text="🔕 无铃声 / 静音 (默认)" />
+
+            <RadioButton
+                android:id="@+id/rbSoundCustom"
+                style="@style/TfButton"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="🎵 自定义手机铃声" />
+        </RadioGroup>
+
+        <TextView
+            android:id="@+id/tvCustomSoundName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:background="@drawable/bg_pill"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp"
+            android:text="🎵 点击选择手机内置铃声..."
+            android:textColor="@color/brand"
+            android:textSize="11sp"
+            android:visibility="gone" />
+
+        <!-- 强提醒设置 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/bg_input_box"
+            android:orientation="vertical"
+            android:padding="10dp">
+
+            <CheckBox
+                android:id="@+id/cbStrongAlert"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="⚡ 开启强提醒（满足条件后持续连续提醒）"
+                android:textColor="@color/text_main"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:id="@+id/layoutStrongSettings"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="连续提醒次数（默认2次）"
+                    android:textColor="@color/text_muted"
+                    android:textSize="11sp" />
+
+                <RadioGroup
+                    android:id="@+id/rgStrongCount"
+                    android:layout_width="match_parent"
+                    android:layout_height="32dp"
+                    android:layout_marginTop="4dp"
+                    android:orientation="horizontal">
+
+                    <RadioButton
+                        android:id="@+id/rbStrongCount1"
+                        style="@style/TfButton"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:text="1次"
+                        android:textSize="10sp" />
+
+                    <RadioButton
+                        android:id="@+id/rbStrongCount2"
+                        style="@style/TfButton"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:checked="true"
+                        android:text="2次"
+                        android:textSize="10sp" />
+
+                    <RadioButton
+                        android:id="@+id/rbStrongCount3"
+                        style="@style/TfButton"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:text="3次"
+                        android:textSize="10sp" />
+
+                    <RadioButton
+                        android:id="@+id/rbStrongCount5"
+                        style="@style/TfButton"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:text="5次"
+                        android:textSize="10sp" />
+
+                    <RadioButton
+                        android:id="@+id/rbStrongCount10"
+                        style="@style/TfButton"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:text="10次"
+                        android:textSize="10sp" />
+
+                    <RadioButton
+                        android:id="@+id/rbStrongCountInf"
+                        style="@style/TfButton"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:text="无限次"
+                        android:textSize="10sp" />
+                </RadioGroup>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="连续提醒间隔"
+                    android:textColor="@color/text_muted"
+                    android:textSize="11sp" />
+
+                <RadioGroup
+                    android:id="@+id/rgStrongInterval"
+                    android:layout_width="match_parent"
+                    android:layout_height="32dp"
+                    android:layout_marginTop="4dp"
+                    android:orientation="horizontal">
+
+                    <RadioButton
+                        android:id="@+id/rbStrongInt15s"
+                        style="@style/TfButton"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:text="15秒"
+                        android:textSize="10sp" />
+
+                    <RadioButton
+                        android:id="@+id/rbStrongInt30s"
+                        style="@style/TfButton"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:checked="true"
+                        android:text="30秒"
+                        android:textSize="10sp" />
+
+                    <RadioButton
+                        android:id="@+id/rbStrongInt1m"
+                        style="@style/TfButton"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:text="1分钟"
+                        android:textSize="10sp" />
+
+                    <RadioButton
+                        android:id="@+id/rbStrongInt2m"
+                        style="@style/TfButton"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:text="2分钟"
+                        android:textSize="10sp" />
+                </RadioGroup>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 推送通知渠道 (可多选) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:background="@drawable/bg_input_box"
+            android:orientation="vertical"
+            android:padding="10dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="📢 推送通知渠道 (可多选)"
+                    android:textColor="@color/text_main"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <Button
+                    android:id="@+id/btnConfigPushChannels"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="32dp"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
+                    android:text="⚙ 配置 Webhook/HTTP"
+                    android:textColor="@color/brand"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:orientation="horizontal">
+
+                <CheckBox
+                    android:id="@+id/cbNotifySystem"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:checked="true"
+                    android:text="手机通知栏"
+                    android:textColor="@color/text_main"
+                    android:textSize="11sp" />
+
+                <CheckBox
+                    android:id="@+id/cbNotifyToast"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="屏幕 Toast"
+                    android:textColor="@color/text_main"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <CheckBox
+                    android:id="@+id/cbNotifyWebhook"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Webhook (钉/飞/企)"
+                    android:textColor="@color/text_main"
+                    android:textSize="11sp" />
+
+                <CheckBox
+                    android:id="@+id/cbNotifyHttp"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="HTTP 接口"
+                    android:textColor="@color/text_main"
+                    android:textSize="11sp" />
+            </LinearLayout>
         </LinearLayout>
 
         <!-- 重复触发设置 -->

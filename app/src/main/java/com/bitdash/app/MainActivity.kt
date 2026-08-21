@@ -383,8 +383,9 @@ class MainActivity : BaseActivity() {
                 })
                 updateSourceLabel()
             } catch (e: Exception) {
-                // 保留旧数据，仅在用户主动下拉时提示具体原因
-                if (showPull) {
+                if (e is kotlinx.coroutines.CancellationException || e.message?.contains("cancel", ignoreCase = true) == true) {
+                    // 正常协程切换/取消，静默忽略，不弹 Toast
+                } else if (showPull) {
                     Toast.makeText(this@MainActivity, errorText(e), Toast.LENGTH_LONG).show()
                 }
                 syncRows()

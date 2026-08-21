@@ -66,6 +66,9 @@ object SettingsDialog {
         val alertCount = com.bitdash.app.alert.PriceAlertManager.getActiveCount(activity)
         val alertLabel = if (alertCount > 0) activity.getString(R.string.price_alerts_count, alertCount) else activity.getString(R.string.price_alerts_off)
 
+        val pushConfigured = com.bitdash.app.alert.PushChannelPrefs.getWebhookUrl(activity).isNotBlank() || com.bitdash.app.alert.PushChannelPrefs.getHttpUrl(activity).isNotBlank()
+        val pushLabel = activity.getString(if (pushConfigured) R.string.push_channels_configured else R.string.push_channels_not_configured)
+
         val items = arrayOf(
             activity.getString(R.string.settings_theme, themeLabel(activity, Prefs.getThemeMode(activity))),
             activity.getString(R.string.settings_source, currentSourceName(activity)),
@@ -77,6 +80,7 @@ object SettingsDialog {
             activity.getString(R.string.settings_orientation, orientationLabel(activity, Prefs.getOrientation(activity))),
             activity.getString(R.string.settings_keep_screen_on, keepScreenOnLabel(activity, Prefs.getKeepScreenOn(activity))),
             activity.getString(R.string.settings_price_alerts, alertLabel),
+            activity.getString(R.string.settings_push_channels, pushLabel),
             activity.getString(R.string.settings_floating, floatingLabel(activity))
         )
 
@@ -94,7 +98,8 @@ object SettingsDialog {
                     7 -> showOrientationPicker(activity, onChanged)
                     8 -> showKeepScreenOnPicker(activity, onChanged)
                     9 -> com.bitdash.app.alert.PriceAlertDialog.show(activity) { onChanged() }
-                    10 -> showFloatingSettingsPicker(activity, onChanged)
+                    10 -> com.bitdash.app.alert.PushChannelSettingsDialog.show(activity) { onChanged() }
+                    11 -> showFloatingSettingsPicker(activity, onChanged)
                 }
             }
             .setNegativeButton(android.R.string.cancel, null)

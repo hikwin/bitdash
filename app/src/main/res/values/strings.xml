@@ -56,6 +56,9 @@
     <string name="settings_price_alerts">价格预警与异动：%1$s</string>
     <string name="price_alerts_count">已启用 %1$d 条</string>
     <string name="price_alerts_off">未设置</string>
+    <string name="settings_push_channels">推送通道与 Webhook：%1$s</string>
+    <string name="push_channels_configured">已配置</string>
+    <string name="push_channels_not_configured">未配置</string>
     <string name="settings_theme_title">外观主题</string>
     <string name="theme_dark">夜间模式（深色，默认）</string>
     <string name="theme_light">日间模式（浅色/亮色）</string>

@@ -38,20 +38,48 @@ data class PriceAlert(
     val direction: VolatilityDirection = VolatilityDirection.BOTH,
     var enabled: Boolean = true,
     var repeat: Boolean = true,
+    var soundMode: String = "SILENT", // "SILENT", "CUSTOM"
+    var soundUri: String = "",
+    var soundTitle: String = "",
+    var isStrongAlert: Boolean = false, // 是否开启强提醒
+    var strongMaxCount: Int = 2, // 强提醒连续提醒次数（默认2次）
+    var strongIntervalSeconds: Int = 30, // 强提醒连续提醒间隔（秒）
+    var strongCurrentCount: Int = 0, // 当前轮次已连续提醒次数
+    var notifySystem: Boolean = true, // 1. 系统通知栏（默认勾选）
+    var notifyToast: Boolean = false, // 2. 屏幕 Toast 提示
+    var notifyWebhook: Boolean = false, // 3. 自定义 Webhook (钉钉/飞书等)
+    var notifyHttp: Boolean = false, // 4. HTTP 自定义接口
     val createdAt: Long = System.currentTimeMillis(),
     var lastTriggeredTs: Long = 0L,
     var lastTriggeredPrice: Double = 0.0
 ) {
-    fun summaryText(): String = when (type) {
-        AlertType.PRICE_ABOVE -> "价格上涨突破 ≥ ${Fmt.price(targetPrice)}"
-        AlertType.PRICE_BELOW -> "价格下跌跌破 ≤ ${Fmt.price(targetPrice)}"
-        AlertType.VOLATILITY -> {
-            val dirStr = when (direction) {
-                VolatilityDirection.SURGE -> "暴涨"
-                VolatilityDirection.PLUNGE -> "暴跌"
-                VolatilityDirection.BOTH -> "异动"
+    fun summaryText(): String = buildString {
+        when (type) {
+            AlertType.PRICE_ABOVE -> append("价格上涨突破 ≥ ${Fmt.price(targetPrice)}")
+            AlertType.PRICE_BELOW -> append("价格下跌跌破 ≤ ${Fmt.price(targetPrice)}")
+            AlertType.VOLATILITY -> {
+                val dirStr = when (direction) {
+                    VolatilityDirection.SURGE -> "暴涨"
+                    VolatilityDirection.PLUNGE -> "暴跌"
+                    VolatilityDirection.BOTH -> "异动"
+                }
+                append("${windowMinutes}分钟内$dirStr ≥ ${String.format("%.1f", pctThreshold)}%")
             }
-            "${windowMinutes}分钟内$dirStr ≥ ${String.format("%.1f", pctThreshold)}%"
+        }
+        if (isStrongAlert) {
+            val countStr = if (strongMaxCount >= 999) "持续无限次" else "连续${strongMaxCount}次"
+            append(" · ⚡强提醒(${countStr})")
+        }
+        if (soundMode == "CUSTOM" && soundTitle.isNotBlank()) {
+            append(" · 🎵${soundTitle}")
+        }
+        val channels = mutableListOf<String>()
+        if (notifySystem) channels.add("通知")
+        if (notifyToast) channels.add("Toast")
+        if (notifyWebhook) channels.add("Webhook")
+        if (notifyHttp) channels.add("HTTP")
+        if (channels.isNotEmpty()) {
+            append(" · 渠道: [${channels.joinToString("+")}]")
         }
     }
 
@@ -65,6 +93,17 @@ data class PriceAlert(
         put("direction", direction.code)
         put("enabled", enabled)
         put("repeat", repeat)
+        put("soundMode", soundMode)
+        put("soundUri", soundUri)
+        put("soundTitle", soundTitle)
+        put("isStrongAlert", isStrongAlert)
+        put("strongMaxCount", strongMaxCount)
+        put("strongIntervalSeconds", strongIntervalSeconds)
+        put("strongCurrentCount", strongCurrentCount)
+        put("notifySystem", notifySystem)
+        put("notifyToast", notifyToast)
+        put("notifyWebhook", notifyWebhook)
+        put("notifyHttp", notifyHttp)
         put("createdAt", createdAt)
         put("lastTriggeredTs", lastTriggeredTs)
         put("lastTriggeredPrice", lastTriggeredPrice)
@@ -81,6 +120,17 @@ data class PriceAlert(
             direction = VolatilityDirection.fromCode(json.optString("direction")),
             enabled = json.optBoolean("enabled", true),
             repeat = json.optBoolean("repeat", true),
+            soundMode = json.optString("soundMode", "SILENT"),
+            soundUri = json.optString("soundUri", ""),
+            soundTitle = json.optString("soundTitle", ""),
+            isStrongAlert = json.optBoolean("isStrongAlert", false),
+            strongMaxCount = json.optInt("strongMaxCount", 2),
+            strongIntervalSeconds = json.optInt("strongIntervalSeconds", 30),
+            strongCurrentCount = json.optInt("strongCurrentCount", 0),
+            notifySystem = json.optBoolean("notifySystem", true),
+            notifyToast = json.optBoolean("notifyToast", false),
+            notifyWebhook = json.optBoolean("notifyWebhook", false),
+            notifyHttp = json.optBoolean("notifyHttp", false),
             createdAt = json.optLong("createdAt", System.currentTimeMillis()),
             lastTriggeredTs = json.optLong("lastTriggeredTs", 0L),
             lastTriggeredPrice = json.optDouble("lastTriggeredPrice", 0.0)

@@ -519,7 +519,7 @@ class ChartActivity : BaseActivity() {
                     loading.visibility = View.GONE
                 }
             } catch (e: Exception) {
-                if (bar != currentBar) return@launch
+                if (bar != currentBar || e is kotlinx.coroutines.CancellationException || e.message?.contains("cancel", ignoreCase = true) == true) return@launch
                 if (chart.isEmptyData()) {
                     // 图上没有任何可看的数据时才提示，否则保留旧图静默重试
                     loading.text = e.message ?: getString(R.string.network_error)

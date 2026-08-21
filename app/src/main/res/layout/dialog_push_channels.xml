@@ -1,0 +1,413 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/bg"
+    android:fillViewport="true"
+    android:overScrollMode="never">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- 顶部标题 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="推送通知渠道与 Webhook 设置"
+                android:textColor="@color/text_main"
+                android:textSize="17sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/btnCancelPushConfig"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:text="@android:string/cancel"
+                android:textColor="@color/text_muted" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="配置钉钉、飞书、企业微信群机器人或自定义 HTTP 接口，行情达到条件后实时多端推送。"
+            android:textColor="@color/text_dim"
+            android:textSize="11sp" />
+
+        <!-- ══════════════════════════════════════════════════ -->
+        <!-- 模块一：自定义 Webhook (钉钉/飞书/企微/通用) -->
+        <!-- ══════════════════════════════════════════════════ -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:background="@drawable/bg_input_box"
+            android:orientation="vertical"
+            android:padding="12dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🤖 自定义 Webhook 机器人"
+                android:textColor="@color/brand"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="平台类型"
+                android:textColor="@color/text_muted"
+                android:textSize="11sp" />
+
+            <RadioGroup
+                android:id="@+id/rgWebhookPlatform"
+                android:layout_width="match_parent"
+                android:layout_height="32dp"
+                android:layout_marginTop="4dp"
+                android:orientation="horizontal">
+
+                <RadioButton
+                    android:id="@+id/rbPlatDingTalk"
+                    style="@style/TfButton"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:checked="true"
+                    android:text="钉钉"
+                    android:textSize="10sp" />
+
+                <RadioButton
+                    android:id="@+id/rbPlatFeishu"
+                    style="@style/TfButton"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:text="飞书"
+                    android:textSize="10sp" />
+
+                <RadioButton
+                    android:id="@+id/rbPlatWecom"
+                    style="@style/TfButton"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:text="企微"
+                    android:textSize="10sp" />
+
+                <RadioButton
+                    android:id="@+id/rbPlatGeneric"
+                    style="@style/TfButton"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:text="通用"
+                    android:textSize="10sp" />
+            </RadioGroup>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="Webhook URL"
+                android:textColor="@color/text_muted"
+                android:textSize="11sp" />
+
+            <EditText
+                android:id="@+id/etWebhookUrl"
+                android:layout_width="match_parent"
+                android:layout_height="38dp"
+                android:layout_marginTop="4dp"
+                android:background="@drawable/bg_pill"
+                android:hint="https://oapi.dingtalk.com/robot/send?access_token=xxx"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:singleLine="true"
+                android:textColor="@color/text_main"
+                android:textColorHint="@color/text_dim"
+                android:textSize="12sp" />
+
+            <LinearLayout
+                android:id="@+id/layoutDingSecret"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="加签密钥 Secret (选填，若钉钉机器人开启加签)"
+                    android:textColor="@color/text_muted"
+                    android:textSize="11sp" />
+
+                <EditText
+                    android:id="@+id/etWebhookSecret"
+                    android:layout_width="match_parent"
+                    android:layout_height="38dp"
+                    android:layout_marginTop="4dp"
+                    android:background="@drawable/bg_pill"
+                    android:hint="SECxxxxxxxxxxxxxxxx"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp"
+                    android:singleLine="true"
+                    android:textColor="@color/text_main"
+                    android:textColorHint="@color/text_dim"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/layoutGenericTemplate"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="JSON 消息模板 (支持 {title}, {message}, {symbol}, {price}, {time})"
+                    android:textColor="@color/text_muted"
+                    android:textSize="11sp" />
+
+                <EditText
+                    android:id="@+id/etWebhookTemplate"
+                    android:layout_width="match_parent"
+                    android:layout_height="64dp"
+                    android:layout_marginTop="4dp"
+                    android:background="@drawable/bg_pill"
+                    android:gravity="top"
+                    android:hint="{&quot;msg&quot;:&quot;{title}\n{message}\n现价: {price}&quot;}"
+                    android:padding="8dp"
+                    android:textColor="@color/text_main"
+                    android:textColorHint="@color/text_dim"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/btnTestWebhook"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="34dp"
+                    android:text="🚀 发送测试 Webhook"
+                    android:textColor="@color/brand"
+                    android:textSize="11sp" />
+
+                <TextView
+                    android:id="@+id/tvWebhookTestResult"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="2"
+                    android:textColor="@color/text_muted"
+                    android:textSize="10sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ══════════════════════════════════════════════════ -->
+        <!-- 模块二：自定义 HTTP 接口 (GET / POST) -->
+        <!-- ══════════════════════════════════════════════════ -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/bg_input_box"
+            android:orientation="vertical"
+            android:padding="12dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🌐 HTTP 自定义接口"
+                android:textColor="@color/brand"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="请求方法"
+                android:textColor="@color/text_muted"
+                android:textSize="11sp" />
+
+            <RadioGroup
+                android:id="@+id/rgHttpMethod"
+                android:layout_width="160dp"
+                android:layout_height="32dp"
+                android:layout_marginTop="4dp"
+                android:orientation="horizontal">
+
+                <RadioButton
+                    android:id="@+id/rbHttpPOST"
+                    style="@style/TfButton"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:checked="true"
+                    android:text="POST"
+                    android:textSize="10sp" />
+
+                <RadioButton
+                    android:id="@+id/rbHttpGET"
+                    style="@style/TfButton"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:text="GET"
+                    android:textSize="10sp" />
+            </RadioGroup>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="接口 URL (支持占位符 {symbol}, {price}, {title}, {message})"
+                android:textColor="@color/text_muted"
+                android:textSize="11sp" />
+
+            <EditText
+                android:id="@+id/etHttpUrl"
+                android:layout_width="match_parent"
+                android:layout_height="38dp"
+                android:layout_marginTop="4dp"
+                android:background="@drawable/bg_pill"
+                android:hint="https://api.myserver.com/alert?symbol={symbol}&amp;price={price}"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:singleLine="true"
+                android:textColor="@color/text_main"
+                android:textColorHint="@color/text_dim"
+                android:textSize="12sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="请求头 Headers (每行一条 Header-Name: Header-Value)"
+                android:textColor="@color/text_muted"
+                android:textSize="11sp" />
+
+            <EditText
+                android:id="@+id/etHttpHeaders"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="4dp"
+                android:background="@drawable/bg_pill"
+                android:gravity="top"
+                android:hint="Content-Type: application/json&#10;Authorization: Bearer token123"
+                android:padding="8dp"
+                android:textColor="@color/text_main"
+                android:textColorHint="@color/text_dim"
+                android:textSize="11sp" />
+
+            <LinearLayout
+                android:id="@+id/layoutHttpBody"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="POST 请求体 Body (JSON 模板)"
+                    android:textColor="@color/text_muted"
+                    android:textSize="11sp" />
+
+                <EditText
+                    android:id="@+id/etHttpBody"
+                    android:layout_width="match_parent"
+                    android:layout_height="64dp"
+                    android:layout_marginTop="4dp"
+                    android:background="@drawable/bg_pill"
+                    android:gravity="top"
+                    android:hint="{&quot;symbol&quot;:&quot;{symbol}&quot;,&quot;price&quot;:{price},&quot;title&quot;:&quot;{title}&quot;,&quot;message&quot;:&quot;{message}&quot;}"
+                    android:padding="8dp"
+                    android:textColor="@color/text_main"
+                    android:textColorHint="@color/text_dim"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/btnTestHttp"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="34dp"
+                    android:text="🚀 发送测试 HTTP"
+                    android:textColor="@color/brand"
+                    android:textSize="11sp" />
+
+                <TextView
+                    android:id="@+id/tvHttpTestResult"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="2"
+                    android:textColor="@color/text_muted"
+                    android:textSize="10sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 底部操作按钮 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:gravity="end"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnCancelPushSettings"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="38dp"
+                android:text="@android:string/cancel"
+                android:textColor="@color/text_muted" />
+
+            <Button
+                android:id="@+id/btnSavePushSettings"
+                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="38dp"
+                android:layout_marginStart="8dp"
+                android:backgroundTint="@color/brand"
+                android:text="保存配置"
+                android:textColor="#000000"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>

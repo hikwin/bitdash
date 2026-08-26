@@ -722,8 +722,17 @@ class ChartActivity : BaseActivity() {
         val showTurtle = Prefs.getShowTurtle(this)
         val showThreeK = Prefs.getShowThreeK(this)
         val showBollBreak = Prefs.getShowBollBreak(this)
+        val showLorentzian = Prefs.getShowLorentzian(this)
         val showHl = Prefs.getShowHighLow(this)
         val isRuler = chart.isRulerMode
+
+        val idLorentzian = menuId++
+        popup.menu.add(0, idLorentzian, idLorentzian, "洛伦兹分类" + if (showLorentzian) "  ✓" else "")
+        itemActionMap[idLorentzian] = {
+            Prefs.setShowLorentzian(this, !showLorentzian)
+            updateIndicatorTabsUI()
+            chart.refreshIndicatorToggles()
+        }
 
         val idBollBreak = menuId++
         popup.menu.add(0, idBollBreak, idBollBreak, "布林突破" + if (showBollBreak) "  ✓" else "")
@@ -905,7 +914,7 @@ class ChartActivity : BaseActivity() {
 
         val moreActive = Prefs.getShowSuperTrend(this) || Prefs.getShowFibonacci(this) ||
             Prefs.getShowTurtle(this) || Prefs.getShowThreeK(this) || Prefs.getShowBollBreak(this) ||
-            chart.isRulerMode || anyOverflowActive
+            Prefs.getShowLorentzian(this) || chart.isRulerMode || anyOverflowActive
         tvMoreIndicators?.alpha = if (moreActive) 1.0f else 0.55f
 
         val sub = Prefs.getSubIndicator(this)

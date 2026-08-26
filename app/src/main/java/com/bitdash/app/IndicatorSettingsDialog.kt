@@ -44,6 +44,11 @@ object IndicatorSettingsDialog {
         val etBollBreakP = view.findViewById<EditText>(R.id.etBollBreakP)
         val etBollBreakMaFilter = view.findViewById<EditText>(R.id.etBollBreakMaFilter)
 
+        val etLorentzNeighbors = view.findViewById<EditText>(R.id.etLorentzNeighbors)
+        val etLorentzMaxBars = view.findViewById<EditText>(R.id.etLorentzMaxBars)
+        val etLorentzLookback = view.findViewById<EditText>(R.id.etLorentzLookback)
+        val etLorentzWeight = view.findViewById<EditText>(R.id.etLorentzWeight)
+
         val etMacdFast = view.findViewById<EditText>(R.id.etMacdFast)
         val etMacdSlow = view.findViewById<EditText>(R.id.etMacdSlow)
         val etMacdSig = view.findViewById<EditText>(R.id.etMacdSig)
@@ -84,6 +89,11 @@ object IndicatorSettingsDialog {
             etBollBreakM.setText(Prefs.getBollBreakM(activity).toString())
             etBollBreakP.setText(Prefs.getBollBreakP(activity).toString())
             etBollBreakMaFilter.setText(Prefs.getBollBreakMaFilter(activity).toString())
+
+            etLorentzNeighbors.setText(Prefs.getLorentzianNeighbors(activity).toString())
+            etLorentzMaxBars.setText(Prefs.getLorentzianMaxBars(activity).toString())
+            etLorentzLookback.setText(Prefs.getLorentzianLookback(activity).toString())
+            etLorentzWeight.setText(Prefs.getLorentzianWeight(activity).toString())
 
             etMacdFast.setText(Prefs.getMacdFast(activity).toString())
             etMacdSlow.setText(Prefs.getMacdSlow(activity).toString())
@@ -143,6 +153,11 @@ object IndicatorSettingsDialog {
             val bbP = etBollBreakP.text.toString().toFloatOrNull() ?: Prefs.DEFAULT_BOLL_BREAK_P
             val bbMa = etBollBreakMaFilter.text.toString().toIntOrNull() ?: Prefs.DEFAULT_BOLL_BREAK_MA_FILTER
 
+            val lkK = etLorentzNeighbors.text.toString().toIntOrNull() ?: Prefs.DEFAULT_LORENTZIAN_NEIGHBORS
+            val lkMax = etLorentzMaxBars.text.toString().toIntOrNull() ?: Prefs.DEFAULT_LORENTZIAN_MAX_BARS
+            val lkLook = etLorentzLookback.text.toString().toIntOrNull() ?: Prefs.DEFAULT_LORENTZIAN_LOOKBACK
+            val lkWeight = etLorentzWeight.text.toString().toFloatOrNull() ?: Prefs.DEFAULT_LORENTZIAN_WEIGHT
+
             val macdFast = etMacdFast.text.toString().toIntOrNull() ?: Prefs.DEFAULT_MACD_FAST
             val macdSlow = etMacdSlow.text.toString().toIntOrNull() ?: Prefs.DEFAULT_MACD_SLOW
             val macdSig = etMacdSig.text.toString().toIntOrNull() ?: Prefs.DEFAULT_MACD_SIGNAL
@@ -164,6 +179,7 @@ object IndicatorSettingsDialog {
                 turtleEntry, turtleExit, turtleAtr,
                 tkDonch, tkEma, tkAtr, tkAtrMult,
                 bbN, bbM, bbP, bbMa,
+                lkK, lkMax, lkLook, lkWeight,
                 macdFast, macdSlow, macdSig,
                 rsi1, rsi2, rsi3,
                 kdjN, kdjM1, kdjM2

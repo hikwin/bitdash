@@ -318,6 +318,7 @@ object Prefs {
     private const val KEY_SHOW_TURTLE = "ind_show_turtle"
     private const val KEY_SHOW_THREE_K = "ind_show_three_k"
     private const val KEY_SHOW_BOLL_BREAK = "ind_show_boll_break"
+    private const val KEY_SHOW_LORENTZIAN = "ind_show_lorentzian"
     private const val KEY_SHOW_FIBONACCI = "ind_show_fibonacci"
     private const val KEY_SHOW_HIGH_LOW = "ind_show_high_low"
     private const val KEY_SUB_INDICATOR = "ind_sub_type"
@@ -350,6 +351,11 @@ object Prefs {
     private const val KEY_BOLL_BREAK_M = "ind_boll_break_m"
     private const val KEY_BOLL_BREAK_P = "ind_boll_break_p"
     private const val KEY_BOLL_BREAK_MA_FILTER = "ind_boll_break_ma_filter"
+
+    private const val KEY_LORENTZIAN_NEIGHBORS = "ind_lorentzian_neighbors"
+    private const val KEY_LORENTZIAN_MAX_BARS = "ind_lorentzian_max_bars"
+    private const val KEY_LORENTZIAN_LOOKBACK = "ind_lorentzian_lookback"
+    private const val KEY_LORENTZIAN_WEIGHT = "ind_lorentzian_weight"
 
     private const val KEY_MACD_FAST = "ind_macd_fast"
     private const val KEY_MACD_SLOW = "ind_macd_slow"
@@ -392,6 +398,11 @@ object Prefs {
     const val DEFAULT_BOLL_BREAK_M = 26
     const val DEFAULT_BOLL_BREAK_P = 1.0f
     const val DEFAULT_BOLL_BREAK_MA_FILTER = 60
+
+    const val DEFAULT_LORENTZIAN_NEIGHBORS = 8
+    const val DEFAULT_LORENTZIAN_MAX_BARS = 1000
+    const val DEFAULT_LORENTZIAN_LOOKBACK = 8
+    const val DEFAULT_LORENTZIAN_WEIGHT = 8.0f
 
     const val DEFAULT_MACD_FAST = 12
     const val DEFAULT_MACD_SLOW = 26
@@ -438,6 +449,9 @@ object Prefs {
     fun getShowBollBreak(ctx: Context): Boolean = sp(ctx).getBoolean(KEY_SHOW_BOLL_BREAK, false)
     fun setShowBollBreak(ctx: Context, show: Boolean) = sp(ctx).edit().putBoolean(KEY_SHOW_BOLL_BREAK, show).apply()
 
+    fun getShowLorentzian(ctx: Context): Boolean = sp(ctx).getBoolean(KEY_SHOW_LORENTZIAN, false)
+    fun setShowLorentzian(ctx: Context, show: Boolean) = sp(ctx).edit().putBoolean(KEY_SHOW_LORENTZIAN, show).apply()
+
     fun getShowFibonacci(ctx: Context): Boolean = sp(ctx).getBoolean(KEY_SHOW_FIBONACCI, false)
     fun setShowFibonacci(ctx: Context, show: Boolean) = sp(ctx).edit().putBoolean(KEY_SHOW_FIBONACCI, show).apply()
 
@@ -478,6 +492,11 @@ object Prefs {
     fun getBollBreakP(ctx: Context): Float = sp(ctx).getFloat(KEY_BOLL_BREAK_P, DEFAULT_BOLL_BREAK_P)
     fun getBollBreakMaFilter(ctx: Context): Int = sp(ctx).getInt(KEY_BOLL_BREAK_MA_FILTER, DEFAULT_BOLL_BREAK_MA_FILTER)
 
+    fun getLorentzianNeighbors(ctx: Context): Int = sp(ctx).getInt(KEY_LORENTZIAN_NEIGHBORS, DEFAULT_LORENTZIAN_NEIGHBORS)
+    fun getLorentzianMaxBars(ctx: Context): Int = sp(ctx).getInt(KEY_LORENTZIAN_MAX_BARS, DEFAULT_LORENTZIAN_MAX_BARS)
+    fun getLorentzianLookback(ctx: Context): Int = sp(ctx).getInt(KEY_LORENTZIAN_LOOKBACK, DEFAULT_LORENTZIAN_LOOKBACK)
+    fun getLorentzianWeight(ctx: Context): Float = sp(ctx).getFloat(KEY_LORENTZIAN_WEIGHT, DEFAULT_LORENTZIAN_WEIGHT)
+
     fun getMacdFast(ctx: Context): Int = sp(ctx).getInt(KEY_MACD_FAST, DEFAULT_MACD_FAST)
     fun getMacdSlow(ctx: Context): Int = sp(ctx).getInt(KEY_MACD_SLOW, DEFAULT_MACD_SLOW)
     fun getMacdSignal(ctx: Context): Int = sp(ctx).getInt(KEY_MACD_SIGNAL, DEFAULT_MACD_SIGNAL)
@@ -499,6 +518,7 @@ object Prefs {
         turtleEntry: Int, turtleExit: Int, turtleAtr: Int,
         threeKDonch: Int, threeKEma: Int, threeKAtr: Int, threeKAtrMult: Float,
         bollBreakN: Int, bollBreakM: Int, bollBreakP: Float, bollBreakMaFilter: Int,
+        lorentzNeighbors: Int, lorentzMaxBars: Int, lorentzLookback: Int, lorentzWeight: Float,
         macdFast: Int, macdSlow: Int, macdSig: Int,
         rsi1: Int, rsi2: Int, rsi3: Int,
         kdjN: Int, kdjM1: Int, kdjM2: Int
@@ -525,6 +545,10 @@ object Prefs {
             .putInt(KEY_BOLL_BREAK_M, bollBreakM.coerceIn(1, 200))
             .putFloat(KEY_BOLL_BREAK_P, bollBreakP.coerceIn(0.1f, 10.0f))
             .putInt(KEY_BOLL_BREAK_MA_FILTER, bollBreakMaFilter.coerceIn(1, 200))
+            .putInt(KEY_LORENTZIAN_NEIGHBORS, lorentzNeighbors.coerceIn(1, 30))
+            .putInt(KEY_LORENTZIAN_MAX_BARS, lorentzMaxBars.coerceIn(50, 2000))
+            .putInt(KEY_LORENTZIAN_LOOKBACK, lorentzLookback.coerceIn(3, 50))
+            .putFloat(KEY_LORENTZIAN_WEIGHT, lorentzWeight.coerceIn(0.5f, 50.0f))
             .putInt(KEY_MACD_FAST, macdFast.coerceIn(1, 100))
             .putInt(KEY_MACD_SLOW, macdSlow.coerceIn(1, 100))
             .putInt(KEY_MACD_SIGNAL, macdSig.coerceIn(1, 100))
@@ -547,6 +571,7 @@ object Prefs {
             DEFAULT_TURTLE_ENTRY, DEFAULT_TURTLE_EXIT, DEFAULT_TURTLE_ATR,
             DEFAULT_THREE_K_DONCH, DEFAULT_THREE_K_EMA, DEFAULT_THREE_K_ATR, DEFAULT_THREE_K_ATR_MULT,
             DEFAULT_BOLL_BREAK_N, DEFAULT_BOLL_BREAK_M, DEFAULT_BOLL_BREAK_P, DEFAULT_BOLL_BREAK_MA_FILTER,
+            DEFAULT_LORENTZIAN_NEIGHBORS, DEFAULT_LORENTZIAN_MAX_BARS, DEFAULT_LORENTZIAN_LOOKBACK, DEFAULT_LORENTZIAN_WEIGHT,
             DEFAULT_MACD_FAST, DEFAULT_MACD_SLOW, DEFAULT_MACD_SIGNAL,
             DEFAULT_RSI1, DEFAULT_RSI2, DEFAULT_RSI3,
             DEFAULT_KDJ_N, DEFAULT_KDJ_M1, DEFAULT_KDJ_M2

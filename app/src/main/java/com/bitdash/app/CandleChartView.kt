@@ -89,6 +89,7 @@ class CandleChartView @JvmOverloads constructor(
     private var turtleResult: Indicators.TurtleResult? = null
     private var threeKResult: Indicators.ThreeKResult? = null
     private var bollBreakResult: Indicators.BollBreakResult? = null
+    private var lorentzianResult: Indicators.LorentzianResult? = null
 
     // 副图指标数据
     private var macdResult: Indicators.MacdResult? = null
@@ -109,6 +110,7 @@ class CandleChartView @JvmOverloads constructor(
     var showTurtle = Prefs.getShowTurtle(context)
     var showThreeK = Prefs.getShowThreeK(context)
     var showBollBreak = Prefs.getShowBollBreak(context)
+    var showLorentzian = Prefs.getShowLorentzian(context)
     var showFibonacci = Prefs.getShowFibonacci(context)
     var showHighLow = Prefs.getShowHighLow(context)
     var subIndicatorType = Prefs.getSubIndicator(context) // "VOL", "MACD", "RSI", "KDJ", "OFF"
@@ -307,6 +309,13 @@ class CandleChartView @JvmOverloads constructor(
     private val bollBreakFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
     }
+    private val lorentzKernelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeWidth = 1.8f * density
+    }
+    private val lorentzStopPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeWidth = 1.2f * density
+        pathEffect = DashPathEffect(floatArrayOf(4f * density, 3f * density), 0f)
+    }
     private val difPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE; strokeWidth = 1.2f * density
     }
@@ -452,6 +461,10 @@ class CandleChartView @JvmOverloads constructor(
         bollBreakMa60Paint.color = 0xFF06B6D4.toInt() // 青色 MA60 趋势过滤均线
         bollBreakFillPaint.color = if (isNight) 0x1294A3B8.toInt() else 0x1064748B.toInt()
 
+        // 洛伦兹分类 (Machine Learning: Lorentzian Classification)
+        lorentzKernelPaint.color = 0xFF06B6D4.toInt() // 青色 NW 核回归平滑中枢线
+        lorentzStopPaint.color = 0xFFEC4899.toInt()   // 粉红色 ATR 追踪止损线
+
         difPaint.color = textMain
         deaPaint.color = ContextCompat.getColor(context, R.color.ma5)
 
@@ -513,6 +526,7 @@ class CandleChartView @JvmOverloads constructor(
         showTurtle = Prefs.getShowTurtle(context)
         showThreeK = Prefs.getShowThreeK(context)
         showBollBreak = Prefs.getShowBollBreak(context)
+        showLorentzian = Prefs.getShowLorentzian(context)
         showFibonacci = Prefs.getShowFibonacci(context)
         showHighLow = Prefs.getShowHighLow(context)
         subIndicatorType = Prefs.getSubIndicator(context)
@@ -921,6 +935,18 @@ class CandleChartView @JvmOverloads constructor(
                     }
                 }
             }
+            if (showLorentzian) {
+                lorentzianResult?.let { lc ->
+                    if (i < lc.kernelEstimate.size && lc.kernelEstimate[i] > 0f) {
+                        if (lc.kernelEstimate[i] > maxP) maxP = lc.kernelEstimate[i].toDouble()
+                        if (lc.kernelEstimate[i] < minP) minP = lc.kernelEstimate[i].toDouble()
+                    }
+                    if (i < lc.stopLoss.size && lc.stopLoss[i] > 0f) {
+                        if (lc.stopLoss[i] > maxP) maxP = lc.stopLoss[i].toDouble()
+                        if (lc.stopLoss[i] < minP) minP = lc.stopLoss[i].toDouble()
+                    }
+                }
+            }
         }
 
         if (minP == Double.MAX_VALUE) { minP = 0.0; maxP = 1.0 }
@@ -1025,9 +1051,16 @@ class CandleChartView @JvmOverloads constructor(
             }
         }
 
-        // 绘制主图指标状态栏（如 3K、布林突破策略持仓、止损与均线状态）
+        // ---- 5.5 绘制洛伦兹分类机器学习策略 (Lorentzian Classification) ----
+        if (showLorentzian) {
+            lorentzianResult?.let { lc ->
+                drawLorentzianStrategy(canvas, lc, leftIdx, rightIdx, cw, minP, priceRange)
+            }
+        }
+
+        // 绘制主图指标状态栏（如 3K、布林突破、洛伦兹分类持仓、止损与中枢线状态）
         val targetMainIdx = if (crossIndex in leftIdx..rightIdx) crossIndex else (candles.size - 1)
-        if (targetMainIdx in candles.indices && (showThreeK || showBollBreak)) {
+        if (targetMainIdx in candles.indices && (showThreeK || showBollBreak || showLorentzian)) {
             drawMainIndicatorLegend(canvas, targetMainIdx)
         }
 
@@ -1487,6 +1520,41 @@ class CandleChartView @JvmOverloads constructor(
                 }
             }
         }
+
+        if (showLorentzian) {
+            val lc = lorentzianResult
+            if (lc != null) {
+                val pos = lc.positions.getOrNull(targetIdx) ?: 0
+                val pred = lc.predictions.getOrNull(targetIdx) ?: 0f
+                val kernel = lc.kernelEstimate.getOrNull(targetIdx)?.takeIf { it > 0f }
+                val stop = lc.stopLoss.getOrNull(targetIdx)?.takeIf { it > 0f }
+
+                curX = drawLegendItem(canvas, "洛伦兹ML", 0xFF06B6D4.toInt(), curX, textY, maxRight, spacing)
+
+                val posText = when (pos) {
+                    1 -> "[多头持有]"
+                    -1 -> "[空头持有]"
+                    else -> "[空仓观望]"
+                }
+                val posColor = when (pos) {
+                    1 -> 0xFF10B981.toInt()
+                    -1 -> 0xFFEF4444.toInt()
+                    else -> textPaint.color
+                }
+                curX = drawLegendItem(canvas, posText, posColor, curX, textY, maxRight, spacing)
+
+                val predText = String.format(Locale.US, "预测:%+.0f", pred)
+                val predColor = if (pred >= 2f) 0xFF10B981.toInt() else if (pred <= -2f) 0xFFEF4444.toInt() else textPaint.color
+                curX = drawLegendItem(canvas, predText, predColor, curX, textY, maxRight, spacing)
+
+                if (kernel != null) {
+                    curX = drawLegendItem(canvas, "核线: ${formatIndicatorVal(kernel)}", 0xFF06B6D4.toInt(), curX, textY, maxRight, spacing)
+                }
+                if (stop != null) {
+                    drawLegendItem(canvas, "止损: ${formatIndicatorVal(stop)}", 0xFFEC4899.toInt(), curX, textY, maxRight, spacing)
+                }
+            }
+        }
     }
 
     private fun formatIndicatorVal(v: Float?): String {
@@ -1830,6 +1898,13 @@ class CandleChartView @JvmOverloads constructor(
         val bbMaFilter = Prefs.getBollBreakMaFilter(context)
         bollBreakResult = Indicators.computeBollBreak(candles, bbN, bbM, bbP, bbMaFilter)
 
+        // 洛伦兹分类 (Machine Learning: Lorentzian Classification)
+        val lkK = Prefs.getLorentzianNeighbors(context)
+        val lkMax = Prefs.getLorentzianMaxBars(context)
+        val lkLook = Prefs.getLorentzianLookback(context)
+        val lkWeight = Prefs.getLorentzianWeight(context).toDouble()
+        lorentzianResult = Indicators.computeLorentzian(candles, lkK, lkMax, lkLook, lkWeight)
+
         // MACD
         val mFast = Prefs.getMacdFast(context)
         val mSlow = Prefs.getMacdSlow(context)
@@ -2100,6 +2175,128 @@ class CandleChartView @JvmOverloads constructor(
                 }
                 Indicators.BollBreakSignal.CLOSE_SHORT -> {
                     // 突破下轨平空：K线最低价下方标示“平空”
+                    val lowY = yOfPrice(c.low, minP, range)
+                    val label = "平空"
+                    val tw = threeKSignalTextPaint.measureText(label)
+                    val th = threeKSignalTextPaint.descent() - threeKSignalTextPaint.ascent()
+                    val badgeW = tw + badgePadH * 2f
+                    val badgeH = th + badgePadV * 2f
+                    val badgeL = x - badgeW / 2f
+                    val badgeT = lowY + 6f * density
+                    threeKSignalBgPaint.color = 0xCCF59E0B.toInt()
+                    val rect = RectF(badgeL, badgeT, badgeL + badgeW, badgeT + badgeH)
+                    canvas.drawRoundRect(rect, 3f * density, 3f * density, threeKSignalBgPaint)
+                    canvas.drawText(label, x, badgeT + badgePadV - threeKSignalTextPaint.ascent(), threeKSignalTextPaint)
+                }
+                else -> {}
+            }
+        }
+    }
+
+    private fun drawLorentzianStrategy(
+        canvas: Canvas,
+        lc: Indicators.LorentzianResult,
+        leftIdx: Int,
+        rightIdx: Int,
+        cw: Float,
+        minP: Double,
+        range: Double
+    ) {
+        // 1. 绘制 Nadaraya-Watson (NW) 核回归平滑估计中枢线
+        drawLineSeries(canvas, lc.kernelEstimate, leftIdx, rightIdx, cw, minP, range, lorentzKernelPaint)
+
+        // 2. 绘制持仓期间的 ATR 动态移动止损线
+        for (i in leftIdx..rightIdx) {
+            val stopP = if (i < lc.stopLoss.size) lc.stopLoss[i] else 0f
+            val pos = if (i < lc.positions.size) lc.positions[i] else 0
+            if (stopP > 0f && pos != 0) {
+                val x = xOfIndex(i.toFloat())
+                val y = yOfPrice(stopP.toDouble(), minP, range)
+                val halfW = (cw * 0.45f).coerceAtLeast(2f)
+                canvas.drawLine(x - halfW, y, x + halfW, y, lorentzStopPaint)
+            }
+        }
+
+        // 3. 绘制 ML 分类预测做多、做空及平仓信号徽标
+        val badgePadH = 3.5f * density
+        val badgePadV = 2f * density
+        val arrowSize = 3.5f * density
+
+        for (i in leftIdx..rightIdx) {
+            if (i >= lc.signals.size) continue
+            val sig = lc.signals[i]
+            if (sig == Indicators.LorentzianSignal.NONE) continue
+            val c = candles[i]
+            val x = xOfIndex(i.toFloat())
+
+            when (sig) {
+                Indicators.LorentzianSignal.BUY -> {
+                    // ML 预测做多：最低价下方画绿色向上三角与“ML多”
+                    val lowY = yOfPrice(c.low, minP, range)
+                    val arrowTop = lowY + 4f * density
+                    val arrowBottom = arrowTop + arrowSize
+
+                    linePath.reset()
+                    linePath.moveTo(x, arrowTop)
+                    linePath.lineTo(x - arrowSize, arrowBottom)
+                    linePath.lineTo(x + arrowSize, arrowBottom)
+                    linePath.close()
+                    threeKSignalBgPaint.color = 0xFF10B981.toInt()
+                    canvas.drawPath(linePath, threeKSignalBgPaint)
+
+                    val label = "ML多"
+                    val tw = threeKSignalTextPaint.measureText(label)
+                    val th = threeKSignalTextPaint.descent() - threeKSignalTextPaint.ascent()
+                    val badgeW = tw + badgePadH * 2f
+                    val badgeH = th + badgePadV * 2f
+                    val badgeL = x - badgeW / 2f
+                    val badgeT = arrowBottom + 1.5f * density
+                    val rect = RectF(badgeL, badgeT, badgeL + badgeW, badgeT + badgeH)
+                    canvas.drawRoundRect(rect, 3f * density, 3f * density, threeKSignalBgPaint)
+                    canvas.drawText(label, x, badgeT + badgePadV - threeKSignalTextPaint.ascent(), threeKSignalTextPaint)
+                }
+                Indicators.LorentzianSignal.SELL -> {
+                    // ML 预测做空：最高价上方画红色向下三角与“ML空”
+                    val highY = yOfPrice(c.high, minP, range)
+                    val arrowBottom = highY - 4f * density
+                    val arrowTop = arrowBottom - arrowSize
+
+                    linePath.reset()
+                    linePath.moveTo(x, arrowBottom)
+                    linePath.lineTo(x - arrowSize, arrowTop)
+                    linePath.lineTo(x + arrowSize, arrowTop)
+                    linePath.close()
+                    threeKSignalBgPaint.color = 0xFFEF4444.toInt()
+                    canvas.drawPath(linePath, threeKSignalBgPaint)
+
+                    val label = "ML空"
+                    val tw = threeKSignalTextPaint.measureText(label)
+                    val th = threeKSignalTextPaint.descent() - threeKSignalTextPaint.ascent()
+                    val badgeW = tw + badgePadH * 2f
+                    val badgeH = th + badgePadV * 2f
+                    val badgeL = x - badgeW / 2f
+                    val badgeT = arrowTop - 1.5f * density - badgeH
+                    val rect = RectF(badgeL, badgeT, badgeL + badgeW, badgeT + badgeH)
+                    canvas.drawRoundRect(rect, 3f * density, 3f * density, threeKSignalBgPaint)
+                    canvas.drawText(label, x, badgeT + badgePadV - threeKSignalTextPaint.ascent(), threeKSignalTextPaint)
+                }
+                Indicators.LorentzianSignal.CLOSE_LONG -> {
+                    // 平多：最高价上方标示“平多”
+                    val highY = yOfPrice(c.high, minP, range)
+                    val label = "平多"
+                    val tw = threeKSignalTextPaint.measureText(label)
+                    val th = threeKSignalTextPaint.descent() - threeKSignalTextPaint.ascent()
+                    val badgeW = tw + badgePadH * 2f
+                    val badgeH = th + badgePadV * 2f
+                    val badgeL = x - badgeW / 2f
+                    val badgeT = highY - 6f * density - badgeH
+                    threeKSignalBgPaint.color = 0xCCF59E0B.toInt()
+                    val rect = RectF(badgeL, badgeT, badgeL + badgeW, badgeT + badgeH)
+                    canvas.drawRoundRect(rect, 3f * density, 3f * density, threeKSignalBgPaint)
+                    canvas.drawText(label, x, badgeT + badgePadV - threeKSignalTextPaint.ascent(), threeKSignalTextPaint)
+                }
+                Indicators.LorentzianSignal.CLOSE_SHORT -> {
+                    // 平空：最低价下方标示“平空”
                     val lowY = yOfPrice(c.low, minP, range)
                     val label = "平空"
                     val tw = threeKSignalTextPaint.measureText(label)

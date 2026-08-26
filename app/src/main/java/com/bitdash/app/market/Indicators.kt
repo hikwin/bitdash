@@ -1,8 +1,10 @@
 package com.bitdash.app.market
 
 import kotlin.math.abs
+import kotlin.math.ln
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.pow
 import kotlin.math.sqrt
 
 /**
@@ -82,6 +84,22 @@ object Indicators {
         val maFilter: FloatArray,        // 趋势过滤均线 SMA(MA_LEN)
         val positions: IntArray,         // 1 = 持多, -1 = 持空, 0 = 空仓
         val signals: Array<BollBreakSignal> // 交易信号
+    )
+
+    enum class LorentzianSignal {
+        NONE,
+        BUY,         // 洛伦兹 ML 预测做多入场
+        SELL,        // 洛伦兹 ML 预测做空入场
+        CLOSE_LONG,  // 平多
+        CLOSE_SHORT  // 平空
+    }
+
+    data class LorentzianResult(
+        val kernelEstimate: FloatArray, // Nadaraya-Watson 核回归平滑估计中枢线
+        val predictions: FloatArray,    // ML 分类预测得分 (-8 ~ +8)
+        val stopLoss: FloatArray,       // 动态 ATR 止损线
+        val positions: IntArray,        // 1 = 持多, -1 = 持空, 0 = 空仓
+        val signals: Array<LorentzianSignal> // 交易信号
     )
 
     data class FibLevel(
@@ -517,6 +535,28 @@ object Indicators {
     }
 
     /**
+     * 计算真实波幅均值 ATR (Wilder's RMA 算法，对齐 TradingView ta.atr)
+     */
+    fun computeAtr(candles: List<Candle>, period: Int = 14): FloatArray {
+        val n = candles.size
+        val atr = FloatArray(n)
+        if (n == 0 || period <= 0) return atr
+        var curAtr = 0.0
+        for (i in 0 until n) {
+            val c = candles[i]
+            val tr = if (i == 0) {
+                c.high - c.low
+            } else {
+                val prevClose = candles[i - 1].close
+                max(c.high - c.low, max(abs(c.high - prevClose), abs(c.low - prevClose)))
+            }
+            curAtr = if (i == 0) tr else (curAtr * (period - 1) + tr) / period
+            atr[i] = curAtr.toFloat()
+        }
+        return atr
+    }
+
+    /**
      * 计算 3K 趋势突破策略 (BTC 1D Trend Alpha)
      * - donchLen: 唐奇安通道周期 (默认 40)
      * - trendLen: EMA 趋势中枢周期 (默认 50)
@@ -543,19 +583,7 @@ object Indicators {
         if (n == 0) return ThreeKResult(emaTrend, upperDonch, lowerDonch, trailStop, positions, signals)
 
         // 1. 计算 ATR (Wilder's RMA 算法，对齐 TradingView ta.atr)
-        val atr = FloatArray(n)
-        var curAtr = 0.0
-        for (i in 0 until n) {
-            val c = candles[i]
-            val tr = if (i == 0) {
-                c.high - c.low
-            } else {
-                val prevClose = candles[i - 1].close
-                max(c.high - c.low, max(abs(c.high - prevClose), abs(c.low - prevClose)))
-            }
-            curAtr = if (i == 0) tr else (curAtr * (atrLen - 1) + tr) / atrLen
-            atr[i] = curAtr.toFloat()
-        }
+        val atr = computeAtr(candles, atrLen)
 
         // 2. 计算唐奇安通道 (基于 high[1] / low[1])
         for (i in 0 until n) {
@@ -736,5 +764,227 @@ object Indicators {
         }
 
         return BollBreakResult(mid, top, bottom, maFilter, positions, signals)
+    }
+
+    /**
+     * 洛伦兹分类 (Machine Learning: Lorentzian Classification)
+     * - neighborsCount: 近邻数 k (默认 8)
+     * - maxBarsBack: 历史最大训练回溯窗口 (默认 1000)
+     * - kernelLookback: Nadaraya-Watson 核回归回溯窗口 h (默认 8)
+     * - kernelWeight: 核回归相对权重 r (默认 8.0)
+     */
+    fun computeLorentzian(
+        candles: List<Candle>,
+        neighborsCount: Int = 8,
+        maxBarsBack: Int = 1000,
+        kernelLookback: Int = 8,
+        kernelWeight: Double = 8.0
+    ): LorentzianResult {
+        val size = candles.size
+        val kernelEst = FloatArray(size)
+        val predictions = FloatArray(size)
+        val stopLoss = FloatArray(size)
+        val positions = IntArray(size)
+        val signals = Array(size) { LorentzianSignal.NONE }
+
+        if (size < 30) return LorentzianResult(kernelEst, predictions, stopLoss, positions, signals)
+
+        // 1. 特征工程 (Feature Engineering): 提取 5 组技术特征并归一化至 0~100
+        val rsi14 = computeRsi(candles, 14)
+        val rsi9 = computeRsi(candles, 9)
+
+        // WaveTrend (10, 11)
+        val wt = FloatArray(size)
+        val hlc3 = DoubleArray(size) { i -> (candles[i].high + candles[i].low + candles[i].close) / 3.0 }
+        val alphaEsa = 2.0 / (10.0 + 1.0)
+        var esa = hlc3[0]
+        var dEsa = 0.0
+        val ci = DoubleArray(size)
+        for (i in 0 until size) {
+            esa = esa + alphaEsa * (hlc3[i] - esa)
+            dEsa = dEsa + alphaEsa * (abs(hlc3[i] - esa) - dEsa)
+            ci[i] = if (dEsa > 1e-8) (hlc3[i] - esa) / (0.015 * dEsa) else 0.0
+        }
+        val alphaWt = 2.0 / (11.0 + 1.0)
+        var wtVal = ci[0]
+        for (i in 0 until size) {
+            wtVal = wtVal + alphaWt * (ci[i] - wtVal)
+            wt[i] = ((wtVal + 100.0) / 2.0).toFloat().coerceIn(0f, 100f)
+        }
+
+        // CCI (20)
+        val cci = FloatArray(size)
+        for (i in 19 until size) {
+            var sum = 0.0
+            for (j in (i - 19)..i) sum += candles[j].close
+            val mean = sum / 20.0
+            var sumDev = 0.0
+            for (j in (i - 19)..i) sumDev += abs(candles[j].close - mean)
+            val meanDev = sumDev / 20.0
+            val cciVal = if (meanDev > 1e-8) (candles[i].close - mean) / (0.015 * meanDev) else 0.0
+            cci[i] = ((cciVal + 200.0) / 4.0).toFloat().coerceIn(0f, 100f)
+        }
+
+        // 简易 ADX (14) 代理特征
+        val atr14 = computeAtr(candles, 14)
+        val adxFeat = FloatArray(size)
+        for (i in 14 until size) {
+            val highDiff = candles[i].high - candles[i - 1].high
+            val lowDiff = candles[i - 1].low - candles[i].low
+            val plusDm = if (highDiff > lowDiff && highDiff > 0) highDiff else 0.0
+            val minusDm = if (lowDiff > highDiff && lowDiff > 0) lowDiff else 0.0
+            val diDiff = abs(plusDm - minusDm)
+            val diSum = (plusDm + minusDm).coerceAtLeast(1e-8)
+            adxFeat[i] = ((diDiff / diSum) * 100.0).toFloat().coerceIn(0f, 100f)
+        }
+
+        // 2. 训练标签生成 (未来 4 根 K 线的价格变化)
+        val yTrain = IntArray(size)
+        for (i in 0 until size - 4) {
+            val cFuture = candles[i + 4].close
+            val cNow = candles[i].close
+            yTrain[i] = if (cFuture > cNow) 1 else if (cFuture < cNow) -1 else 0
+        }
+
+        // 3. 洛伦兹距离计算与 k-NN 分类预测
+        val k = neighborsCount.coerceIn(1, 30)
+        val maxBack = maxBarsBack.coerceIn(50, 2000)
+
+        // 邻居结构辅助数组
+        val topDist = DoubleArray(k)
+        val topLabels = IntArray(k)
+
+        for (i in 30 until size) {
+            val f1 = rsi14[i]
+            val f2 = wt[i]
+            val f3 = cci[i]
+            val f4 = adxFeat[i]
+            val f5 = rsi9[i]
+
+            val startLook = max(20, i - maxBack)
+            val endLook = i - 4 // 只与已知未来真实标签的历史样本比较
+
+            var found = 0
+            for (j in startLook until endLook) {
+                // 洛伦兹距离求和
+                val d = ln(1.0 + abs(f1 - rsi14[j])) +
+                        ln(1.0 + abs(f2 - wt[j])) +
+                        ln(1.0 + abs(f3 - cci[j])) +
+                        ln(1.0 + abs(f4 - adxFeat[j])) +
+                        ln(1.0 + abs(f5 - rsi9[j]))
+
+                val label = yTrain[j]
+
+                if (found < k) {
+                    topDist[found] = d
+                    topLabels[found] = label
+                    found++
+                } else {
+                    // 找到当前 top k 中最大距离并替换
+                    var maxIdx = 0
+                    var maxD = topDist[0]
+                    for (m in 1 until k) {
+                        if (topDist[m] > maxD) {
+                            maxD = topDist[m]
+                            maxIdx = m
+                        }
+                    }
+                    if (d < maxD) {
+                        topDist[maxIdx] = d
+                        topLabels[maxIdx] = label
+                    }
+                }
+            }
+
+            var sumPred = 0
+            for (m in 0 until found) {
+                sumPred += topLabels[m]
+            }
+            predictions[i] = sumPred.toFloat()
+        }
+
+        // 4. Nadaraya-Watson (NW) 核回归平滑估计 (Rational Quadratic Kernel)
+        val h = kernelLookback.coerceAtLeast(3)
+        val r = kernelWeight.coerceAtLeast(0.5)
+        val kernelLen = 25
+        val kernelCoeffs = DoubleArray(kernelLen)
+        val hSq = (h * h).toDouble()
+        for (d in 0 until kernelLen) {
+            val weight = (1.0 + (d * d) / (2.0 * r * hSq)).pow(-r)
+            kernelCoeffs[d] = weight
+        }
+
+        for (i in 0 until size) {
+            var sumVal = 0.0
+            var wSum = 0.0
+            for (d in 0 until kernelLen) {
+                val idx = i - d
+                if (idx >= 0) {
+                    val w = kernelCoeffs[d]
+                    sumVal += candles[idx].close * w
+                    wSum += w
+                }
+            }
+            kernelEst[i] = if (wSum > 0) (sumVal / wSum).toFloat() else candles[i].close.toFloat()
+        }
+
+        // 5. 状态机演进与交易信号
+        var curPos = 0
+        var barsHeld = 0
+        var currentStop = 0.0
+
+        for (i in 30 until size) {
+            val c = candles[i].close
+            val pred = predictions[i]
+            val prevKernel = if (i > 0) kernelEst[i - 1] else kernelEst[i]
+            val curKernel = kernelEst[i]
+            val isBullishKernel = curKernel >= prevKernel
+            val isBearishKernel = curKernel <= prevKernel
+
+            val atr = if (i < atr14.size && atr14[i] > 0f) atr14[i].toDouble() else c * 0.02
+
+            // 多头入场条件：预测分 >= 2 且核回归平滑向上
+            val longEntry = pred >= 2f && isBullishKernel && curPos <= 0
+            // 空头入场条件：预测分 <= -2 且核回归平滑向下
+            val shortEntry = pred <= -2f && isBearishKernel && curPos >= 0
+
+            var sig = LorentzianSignal.NONE
+
+            if (curPos > 0) {
+                barsHeld++
+                // 持多离场条件：持满 4 根 K 线、或者跌破动态 ATR 止损、或者核回归转向看跌
+                if (c < currentStop || isBearishKernel || barsHeld >= 4 || shortEntry) {
+                    curPos = 0
+                    sig = LorentzianSignal.CLOSE_LONG
+                }
+            } else if (curPos < 0) {
+                barsHeld++
+                // 持空离场条件：持满 4 根 K 线、或者升破动态 ATR 止损、或者核回归转向看涨
+                if (c > currentStop || isBullishKernel || barsHeld >= 4 || longEntry) {
+                    curPos = 0
+                    sig = LorentzianSignal.CLOSE_SHORT
+                }
+            }
+
+            if (curPos == 0) {
+                if (longEntry) {
+                    curPos = 1
+                    barsHeld = 0
+                    currentStop = c - 1.5 * atr
+                    sig = LorentzianSignal.BUY
+                } else if (shortEntry) {
+                    curPos = -1
+                    barsHeld = 0
+                    currentStop = c + 1.5 * atr
+                    sig = LorentzianSignal.SELL
+                }
+            }
+
+            positions[i] = curPos
+            signals[i] = sig
+            stopLoss[i] = if (curPos != 0) currentStop.toFloat() else 0f
+        }
+
+        return LorentzianResult(kernelEst, predictions, stopLoss, positions, signals)
     }
 }

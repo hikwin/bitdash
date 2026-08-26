@@ -50,6 +50,40 @@ object Indicators {
         val lowerBand: FloatArray  // 下轨支撑
     )
 
+    enum class ThreeKSignal {
+        NONE,
+        BUY,         // 做多入场
+        SELL,        // 做空入场
+        CLOSE_LONG,  // 平多离场
+        CLOSE_SHORT  // 平空离场
+    }
+
+    data class ThreeKResult(
+        val emaTrend: FloatArray,        // EMA 趋势中枢线 (如 50 EMA)
+        val upperDonch: FloatArray,      // 唐奇安突破上轨 (如 40 周期高点)
+        val lowerDonch: FloatArray,      // 唐奇安突破下轨 (如 40 周期低点)
+        val trailStop: FloatArray,       // 当前生效的动态追踪止损线
+        val positions: IntArray,         // 1 = 持多, -1 = 持空, 0 = 空仓
+        val signals: Array<ThreeKSignal> // 交易信号
+    )
+
+    enum class BollBreakSignal {
+        NONE,
+        BUY,         // 突破上轨做多
+        SELL,        // 跌破下轨做空
+        CLOSE_LONG,  // 跌破上轨平多
+        CLOSE_SHORT  // 突破下轨平空
+    }
+
+    data class BollBreakResult(
+        val mid: FloatArray,             // 布林中轨 SMA(N)
+        val top: FloatArray,             // 布林上轨
+        val bottom: FloatArray,          // 布林下轨
+        val maFilter: FloatArray,        // 趋势过滤均线 SMA(MA_LEN)
+        val positions: IntArray,         // 1 = 持多, -1 = 持空, 0 = 空仓
+        val signals: Array<BollBreakSignal> // 交易信号
+    )
+
     data class FibLevel(
         val ratio: Double,
         val label: String,
@@ -480,5 +514,227 @@ object Indicators {
         }
 
         return FibResult(maxHigh, minLow, isUpTrend, levels)
+    }
+
+    /**
+     * 计算 3K 趋势突破策略 (BTC 1D Trend Alpha)
+     * - donchLen: 唐奇安通道周期 (默认 40)
+     * - trendLen: EMA 趋势中枢周期 (默认 50)
+     * - atrLen: ATR 周期 (默认 14)
+     * - atrMult: ATR 移动止损倍数 (默认 2.0)
+     * - guardPct: 偏离 EMA 止损比例 (默认 0.05 即 5%)
+     */
+    fun computeThreeK(
+        candles: List<Candle>,
+        donchLen: Int = 40,
+        trendLen: Int = 50,
+        atrLen: Int = 14,
+        atrMult: Double = 2.0,
+        guardPct: Double = 0.05
+    ): ThreeKResult {
+        val n = candles.size
+        val emaTrend = computeEma(candles, trendLen)
+        val upperDonch = FloatArray(n)
+        val lowerDonch = FloatArray(n)
+        val trailStop = FloatArray(n)
+        val positions = IntArray(n)
+        val signals = Array(n) { ThreeKSignal.NONE }
+
+        if (n == 0) return ThreeKResult(emaTrend, upperDonch, lowerDonch, trailStop, positions, signals)
+
+        // 1. 计算 ATR (Wilder's RMA 算法，对齐 TradingView ta.atr)
+        val atr = FloatArray(n)
+        var curAtr = 0.0
+        for (i in 0 until n) {
+            val c = candles[i]
+            val tr = if (i == 0) {
+                c.high - c.low
+            } else {
+                val prevClose = candles[i - 1].close
+                max(c.high - c.low, max(abs(c.high - prevClose), abs(c.low - prevClose)))
+            }
+            curAtr = if (i == 0) tr else (curAtr * (atrLen - 1) + tr) / atrLen
+            atr[i] = curAtr.toFloat()
+        }
+
+        // 2. 计算唐奇安通道 (基于 high[1] / low[1])
+        for (i in 0 until n) {
+            if (i >= donchLen) {
+                var maxH = -Double.MAX_VALUE
+                var minL = Double.MAX_VALUE
+                val start = i - donchLen
+                val end = i - 1
+                for (j in start..end) {
+                    if (candles[j].high > maxH) maxH = candles[j].high
+                    if (candles[j].low < minL) minL = candles[j].low
+                }
+                upperDonch[i] = maxH.toFloat()
+                lowerDonch[i] = minL.toFloat()
+            }
+        }
+
+        // 3. 计算 RSI(14)
+        val rsi14 = computeRsi(candles, 14)
+
+        // 4. 模拟策略执行与信号计算
+        var curPos = 0 // 0=无仓位, 1=持多, -1=持空
+
+        for (i in 0 until n) {
+            val c = candles[i]
+            val close = c.close
+            val ema = emaTrend[i].toDouble()
+            val hh = upperDonch[i].toDouble()
+            val ll = lowerDonch[i].toDouble()
+            val curAtrVal = atr[i].toDouble()
+            val curRsi = rsi14[i].toDouble()
+
+            // 计算过去 10 根最高/最低
+            val start10 = max(0, i - 9)
+            var highest10 = -Double.MAX_VALUE
+            var lowest10 = Double.MAX_VALUE
+            for (j in start10..i) {
+                if (candles[j].high > highest10) highest10 = candles[j].high
+                if (candles[j].low < lowest10) lowest10 = candles[j].low
+            }
+
+            val trailStopLong = highest10 - curAtrVal * atrMult
+            val trailStopShort = lowest10 + curAtrVal * atrMult
+
+            val isReady = i >= max(donchLen, max(trendLen, 14)) && hh > 0 && ll > 0 && ema > 0
+
+            var sig = ThreeKSignal.NONE
+
+            if (isReady) {
+                val longEntry = close > hh && close > ema && curRsi > 45.0
+                val shortEntry = close < ll && close < ema && curRsi < 55.0
+
+                if (curPos == 0) {
+                    if (longEntry) {
+                        curPos = 1
+                        sig = ThreeKSignal.BUY
+                    } else if (shortEntry) {
+                        curPos = -1
+                        sig = ThreeKSignal.SELL
+                    }
+                } else if (curPos > 0) {
+                    if (close < trailStopLong || close < ema * (1.0 - guardPct)) {
+                        curPos = 0
+                        sig = ThreeKSignal.CLOSE_LONG
+                    }
+                } else if (curPos < 0) {
+                    if (close > trailStopShort || close > ema * (1.0 + guardPct)) {
+                        curPos = 0
+                        sig = ThreeKSignal.CLOSE_SHORT
+                    }
+                }
+            }
+
+            positions[i] = curPos
+            signals[i] = sig
+
+            if (curPos == 1) {
+                trailStop[i] = trailStopLong.toFloat()
+            } else if (curPos == -1) {
+                trailStop[i] = trailStopShort.toFloat()
+            } else {
+                trailStop[i] = 0f
+            }
+        }
+
+        return ThreeKResult(emaTrend, upperDonch, lowerDonch, trailStop, positions, signals)
+    }
+
+    /**
+     * 计算布林突破策略 (布林线突破策略 + MA60 趋势过滤)
+     * - nPeriod: 中轨 SMA 周期 (默认 26)
+     * - mPeriod: 标准差回溯周期 (默认 26)
+     * - pMultiplier: 带宽倍数 P (默认 1.0)
+     * - maFilterLen: 趋势过滤均线周期 (默认 60)
+     */
+    fun computeBollBreak(
+        candles: List<Candle>,
+        nPeriod: Int = 26,
+        mPeriod: Int = 26,
+        pMultiplier: Double = 1.0,
+        maFilterLen: Int = 60
+    ): BollBreakResult {
+        val size = candles.size
+        val mid = computeMa(candles, nPeriod)
+        val top = FloatArray(size)
+        val bottom = FloatArray(size)
+        val maFilter = computeMa(candles, maFilterLen)
+        val positions = IntArray(size)
+        val signals = Array(size) { BollBreakSignal.NONE }
+
+        if (size == 0) return BollBreakResult(mid, top, bottom, maFilter, positions, signals)
+
+        // 1. 计算布林带上轨与下轨
+        for (i in (max(nPeriod, mPeriod) - 1) until size) {
+            val avg = mid[i].toDouble()
+            var sumSqDiff = 0.0
+            for (j in (i - mPeriod + 1)..i) {
+                val diff = candles[j].close - avg
+                sumSqDiff += diff * diff
+            }
+            val stdDev = sqrt(sumSqDiff / mPeriod)
+            top[i] = (avg + pMultiplier * stdDev).toFloat()
+            bottom[i] = (avg - pMultiplier * stdDev).toFloat()
+        }
+
+        // 2. 模拟策略执行与信号计算
+        var curPos = 0 // 0=无仓位, 1=持多, -1=持空
+        val warmup = max(max(nPeriod, mPeriod), maFilterLen)
+
+        for (i in 1 until size) {
+            if (i < warmup) {
+                positions[i] = 0
+                continue
+            }
+
+            val c = candles[i].close
+            val prevC = candles[i - 1].close
+            val curTop = top[i].toDouble()
+            val prevTop = top[i - 1].toDouble()
+            val curBot = bottom[i].toDouble()
+            val prevBot = bottom[i - 1].toDouble()
+            val curMa6 = maFilter[i].toDouble()
+
+            if (curTop <= 0 || curBot <= 0 || curMa6 <= 0 || prevTop <= 0 || prevBot <= 0) {
+                positions[i] = curPos
+                continue
+            }
+
+            // crossover / crossunder 判断
+            val crossOverTop = c > curTop && prevC <= prevTop
+            val crossUnderTop = c < curTop && prevC >= prevTop
+            val crossUnderBot = c < curBot && prevC >= prevBot
+            val crossOverBot = c > curBot && prevC <= prevBot
+
+            val longEntry = crossOverTop && c > curMa6
+            val longExit = crossUnderTop
+            val shortEntry = crossUnderBot && c < curMa6
+            val shortExit = crossOverBot
+
+            var sig = BollBreakSignal.NONE
+
+            if (longEntry) {
+                curPos = 1
+                sig = BollBreakSignal.BUY
+            } else if (longExit && curPos > 0) {
+                curPos = 0
+                sig = BollBreakSignal.CLOSE_LONG
+            } else if (shortEntry) {
+                curPos = -1
+                sig = BollBreakSignal.SELL
+            } else if (shortExit && curPos < 0) {
+                curPos = 0
+                sig = BollBreakSignal.CLOSE_SHORT
+            }
+
+            positions[i] = curPos
+            signals[i] = sig
+        }
+
+        return BollBreakResult(mid, top, bottom, maFilter, positions, signals)
     }
 }

@@ -720,8 +720,26 @@ class ChartActivity : BaseActivity() {
         val showSt = Prefs.getShowSuperTrend(this)
         val showFib = Prefs.getShowFibonacci(this)
         val showTurtle = Prefs.getShowTurtle(this)
+        val showThreeK = Prefs.getShowThreeK(this)
+        val showBollBreak = Prefs.getShowBollBreak(this)
         val showHl = Prefs.getShowHighLow(this)
         val isRuler = chart.isRulerMode
+
+        val idBollBreak = menuId++
+        popup.menu.add(0, idBollBreak, idBollBreak, "布林突破" + if (showBollBreak) "  ✓" else "")
+        itemActionMap[idBollBreak] = {
+            Prefs.setShowBollBreak(this, !showBollBreak)
+            updateIndicatorTabsUI()
+            chart.refreshIndicatorToggles()
+        }
+
+        val idThreeK = menuId++
+        popup.menu.add(0, idThreeK, idThreeK, "3K 趋势突破" + if (showThreeK) "  ✓" else "")
+        itemActionMap[idThreeK] = {
+            Prefs.setShowThreeK(this, !showThreeK)
+            updateIndicatorTabsUI()
+            chart.refreshIndicatorToggles()
+        }
 
         val idSt = menuId++
         popup.menu.add(0, idSt, idSt, "SuperTrend 超级趋势" + if (showSt) "  ✓" else "")
@@ -886,7 +904,8 @@ class ChartActivity : BaseActivity() {
             (isKdjOverflowed && Prefs.getSubIndicator(this) == "KDJ")
 
         val moreActive = Prefs.getShowSuperTrend(this) || Prefs.getShowFibonacci(this) ||
-            Prefs.getShowTurtle(this) || chart.isRulerMode || anyOverflowActive
+            Prefs.getShowTurtle(this) || Prefs.getShowThreeK(this) || Prefs.getShowBollBreak(this) ||
+            chart.isRulerMode || anyOverflowActive
         tvMoreIndicators?.alpha = if (moreActive) 1.0f else 0.55f
 
         val sub = Prefs.getSubIndicator(this)

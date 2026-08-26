@@ -289,6 +289,150 @@
                 android:textSize="14sp" />
         </LinearLayout>
 
+        <!-- 3.5 3K 趋势突破策略 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="3K 趋势突破策略 (通道 / EMA / ATR / 止损倍数)"
+            android:textColor="#F59E0B"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/etThreeKDonch"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_input_box"
+                android:gravity="center"
+                android:hint="通道 (40)"
+                android:inputType="number"
+                android:textColor="@color/text_main"
+                android:textColorHint="@color/text_dim"
+                android:textSize="13sp" />
+
+            <EditText
+                android:id="@+id/etThreeKEma"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_input_box"
+                android:gravity="center"
+                android:hint="EMA (50)"
+                android:inputType="number"
+                android:textColor="@color/text_main"
+                android:textColorHint="@color/text_dim"
+                android:textSize="13sp" />
+
+            <EditText
+                android:id="@+id/etThreeKAtr"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_input_box"
+                android:gravity="center"
+                android:hint="ATR (14)"
+                android:inputType="number"
+                android:textColor="@color/text_main"
+                android:textColorHint="@color/text_dim"
+                android:textSize="13sp" />
+
+            <EditText
+                android:id="@+id/etThreeKAtrMult"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_input_box"
+                android:gravity="center"
+                android:hint="倍数 (2.0)"
+                android:inputType="numberDecimal"
+                android:textColor="@color/text_main"
+                android:textColorHint="@color/text_dim"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <!-- 3.6 布林突破策略 (BOLL+MA60) -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="布林突破策略 (中轨 / 标准差 / 带宽倍数 / 过滤均线)"
+            android:textColor="#F59E0B"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/etBollBreakN"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_input_box"
+                android:gravity="center"
+                android:hint="中轨 (26)"
+                android:inputType="number"
+                android:textColor="@color/text_main"
+                android:textColorHint="@color/text_dim"
+                android:textSize="13sp" />
+
+            <EditText
+                android:id="@+id/etBollBreakM"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_input_box"
+                android:gravity="center"
+                android:hint="标准差 (26)"
+                android:inputType="number"
+                android:textColor="@color/text_main"
+                android:textColorHint="@color/text_dim"
+                android:textSize="13sp" />
+
+            <EditText
+                android:id="@+id/etBollBreakP"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_input_box"
+                android:gravity="center"
+                android:hint="倍数 (1.0)"
+                android:inputType="numberDecimal"
+                android:textColor="@color/text_main"
+                android:textColorHint="@color/text_dim"
+                android:textSize="13sp" />
+
+            <EditText
+                android:id="@+id/etBollBreakMaFilter"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_input_box"
+                android:gravity="center"
+                android:hint="过滤 (60)"
+                android:inputType="number"
+                android:textColor="@color/text_main"
+                android:textColorHint="@color/text_dim"
+                android:textSize="13sp" />
+        </LinearLayout>
+
         <!-- 4. MACD -->
         <TextView
             android:layout_width="wrap_content"

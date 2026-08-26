@@ -34,6 +34,16 @@ object IndicatorSettingsDialog {
         val etTurtleExit = view.findViewById<EditText>(R.id.etTurtleExit)
         val etTurtleAtr = view.findViewById<EditText>(R.id.etTurtleAtr)
 
+        val etThreeKDonch = view.findViewById<EditText>(R.id.etThreeKDonch)
+        val etThreeKEma = view.findViewById<EditText>(R.id.etThreeKEma)
+        val etThreeKAtr = view.findViewById<EditText>(R.id.etThreeKAtr)
+        val etThreeKAtrMult = view.findViewById<EditText>(R.id.etThreeKAtrMult)
+
+        val etBollBreakN = view.findViewById<EditText>(R.id.etBollBreakN)
+        val etBollBreakM = view.findViewById<EditText>(R.id.etBollBreakM)
+        val etBollBreakP = view.findViewById<EditText>(R.id.etBollBreakP)
+        val etBollBreakMaFilter = view.findViewById<EditText>(R.id.etBollBreakMaFilter)
+
         val etMacdFast = view.findViewById<EditText>(R.id.etMacdFast)
         val etMacdSlow = view.findViewById<EditText>(R.id.etMacdSlow)
         val etMacdSig = view.findViewById<EditText>(R.id.etMacdSig)
@@ -64,6 +74,16 @@ object IndicatorSettingsDialog {
             etTurtleEntry.setText(Prefs.getTurtleEntry(activity).toString())
             etTurtleExit.setText(Prefs.getTurtleExit(activity).toString())
             etTurtleAtr.setText(Prefs.getTurtleAtr(activity).toString())
+
+            etThreeKDonch.setText(Prefs.getThreeKDonch(activity).toString())
+            etThreeKEma.setText(Prefs.getThreeKEma(activity).toString())
+            etThreeKAtr.setText(Prefs.getThreeKAtr(activity).toString())
+            etThreeKAtrMult.setText(Prefs.getThreeKAtrMult(activity).toString())
+
+            etBollBreakN.setText(Prefs.getBollBreakN(activity).toString())
+            etBollBreakM.setText(Prefs.getBollBreakM(activity).toString())
+            etBollBreakP.setText(Prefs.getBollBreakP(activity).toString())
+            etBollBreakMaFilter.setText(Prefs.getBollBreakMaFilter(activity).toString())
 
             etMacdFast.setText(Prefs.getMacdFast(activity).toString())
             etMacdSlow.setText(Prefs.getMacdSlow(activity).toString())
@@ -113,6 +133,16 @@ object IndicatorSettingsDialog {
             val turtleExit = etTurtleExit.text.toString().toIntOrNull() ?: Prefs.DEFAULT_TURTLE_EXIT
             val turtleAtr = etTurtleAtr.text.toString().toIntOrNull() ?: Prefs.DEFAULT_TURTLE_ATR
 
+            val tkDonch = etThreeKDonch.text.toString().toIntOrNull() ?: Prefs.DEFAULT_THREE_K_DONCH
+            val tkEma = etThreeKEma.text.toString().toIntOrNull() ?: Prefs.DEFAULT_THREE_K_EMA
+            val tkAtr = etThreeKAtr.text.toString().toIntOrNull() ?: Prefs.DEFAULT_THREE_K_ATR
+            val tkAtrMult = etThreeKAtrMult.text.toString().toFloatOrNull() ?: Prefs.DEFAULT_THREE_K_ATR_MULT
+
+            val bbN = etBollBreakN.text.toString().toIntOrNull() ?: Prefs.DEFAULT_BOLL_BREAK_N
+            val bbM = etBollBreakM.text.toString().toIntOrNull() ?: Prefs.DEFAULT_BOLL_BREAK_M
+            val bbP = etBollBreakP.text.toString().toFloatOrNull() ?: Prefs.DEFAULT_BOLL_BREAK_P
+            val bbMa = etBollBreakMaFilter.text.toString().toIntOrNull() ?: Prefs.DEFAULT_BOLL_BREAK_MA_FILTER
+
             val macdFast = etMacdFast.text.toString().toIntOrNull() ?: Prefs.DEFAULT_MACD_FAST
             val macdSlow = etMacdSlow.text.toString().toIntOrNull() ?: Prefs.DEFAULT_MACD_SLOW
             val macdSig = etMacdSig.text.toString().toIntOrNull() ?: Prefs.DEFAULT_MACD_SIGNAL
@@ -132,6 +162,8 @@ object IndicatorSettingsDialog {
                 bollN, bollK,
                 stAtr, stFactor,
                 turtleEntry, turtleExit, turtleAtr,
+                tkDonch, tkEma, tkAtr, tkAtrMult,
+                bbN, bbM, bbP, bbMa,
                 macdFast, macdSlow, macdSig,
                 rsi1, rsi2, rsi3,
                 kdjN, kdjM1, kdjM2

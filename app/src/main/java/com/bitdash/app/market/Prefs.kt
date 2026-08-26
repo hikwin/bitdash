@@ -316,6 +316,8 @@ object Prefs {
     private const val KEY_SHOW_BOLL = "ind_show_boll"
     private const val KEY_SHOW_SUPERTREND = "ind_show_supertrend"
     private const val KEY_SHOW_TURTLE = "ind_show_turtle"
+    private const val KEY_SHOW_THREE_K = "ind_show_three_k"
+    private const val KEY_SHOW_BOLL_BREAK = "ind_show_boll_break"
     private const val KEY_SHOW_FIBONACCI = "ind_show_fibonacci"
     private const val KEY_SHOW_HIGH_LOW = "ind_show_high_low"
     private const val KEY_SUB_INDICATOR = "ind_sub_type"
@@ -337,6 +339,17 @@ object Prefs {
     private const val KEY_TURTLE_ENTRY = "ind_turtle_entry"
     private const val KEY_TURTLE_EXIT = "ind_turtle_exit"
     private const val KEY_TURTLE_ATR = "ind_turtle_atr"
+
+    private const val KEY_THREE_K_DONCH = "ind_three_k_donch"
+    private const val KEY_THREE_K_EMA = "ind_three_k_ema"
+    private const val KEY_THREE_K_ATR = "ind_three_k_atr"
+    private const val KEY_THREE_K_ATR_MULT = "ind_three_k_atr_mult"
+    private const val KEY_THREE_K_GUARD = "ind_three_k_guard"
+
+    private const val KEY_BOLL_BREAK_N = "ind_boll_break_n"
+    private const val KEY_BOLL_BREAK_M = "ind_boll_break_m"
+    private const val KEY_BOLL_BREAK_P = "ind_boll_break_p"
+    private const val KEY_BOLL_BREAK_MA_FILTER = "ind_boll_break_ma_filter"
 
     private const val KEY_MACD_FAST = "ind_macd_fast"
     private const val KEY_MACD_SLOW = "ind_macd_slow"
@@ -368,6 +381,17 @@ object Prefs {
     const val DEFAULT_TURTLE_ENTRY = 20
     const val DEFAULT_TURTLE_EXIT = 10
     const val DEFAULT_TURTLE_ATR = 20
+
+    const val DEFAULT_THREE_K_DONCH = 40
+    const val DEFAULT_THREE_K_EMA = 50
+    const val DEFAULT_THREE_K_ATR = 14
+    const val DEFAULT_THREE_K_ATR_MULT = 2.0f
+    const val DEFAULT_THREE_K_GUARD = 0.05f
+
+    const val DEFAULT_BOLL_BREAK_N = 26
+    const val DEFAULT_BOLL_BREAK_M = 26
+    const val DEFAULT_BOLL_BREAK_P = 1.0f
+    const val DEFAULT_BOLL_BREAK_MA_FILTER = 60
 
     const val DEFAULT_MACD_FAST = 12
     const val DEFAULT_MACD_SLOW = 26
@@ -408,6 +432,12 @@ object Prefs {
     fun getShowTurtle(ctx: Context): Boolean = sp(ctx).getBoolean(KEY_SHOW_TURTLE, false)
     fun setShowTurtle(ctx: Context, show: Boolean) = sp(ctx).edit().putBoolean(KEY_SHOW_TURTLE, show).apply()
 
+    fun getShowThreeK(ctx: Context): Boolean = sp(ctx).getBoolean(KEY_SHOW_THREE_K, false)
+    fun setShowThreeK(ctx: Context, show: Boolean) = sp(ctx).edit().putBoolean(KEY_SHOW_THREE_K, show).apply()
+
+    fun getShowBollBreak(ctx: Context): Boolean = sp(ctx).getBoolean(KEY_SHOW_BOLL_BREAK, false)
+    fun setShowBollBreak(ctx: Context, show: Boolean) = sp(ctx).edit().putBoolean(KEY_SHOW_BOLL_BREAK, show).apply()
+
     fun getShowFibonacci(ctx: Context): Boolean = sp(ctx).getBoolean(KEY_SHOW_FIBONACCI, false)
     fun setShowFibonacci(ctx: Context, show: Boolean) = sp(ctx).edit().putBoolean(KEY_SHOW_FIBONACCI, show).apply()
 
@@ -437,6 +467,17 @@ object Prefs {
     fun getTurtleExit(ctx: Context): Int = sp(ctx).getInt(KEY_TURTLE_EXIT, DEFAULT_TURTLE_EXIT)
     fun getTurtleAtr(ctx: Context): Int = sp(ctx).getInt(KEY_TURTLE_ATR, DEFAULT_TURTLE_ATR)
 
+    fun getThreeKDonch(ctx: Context): Int = sp(ctx).getInt(KEY_THREE_K_DONCH, DEFAULT_THREE_K_DONCH)
+    fun getThreeKEma(ctx: Context): Int = sp(ctx).getInt(KEY_THREE_K_EMA, DEFAULT_THREE_K_EMA)
+    fun getThreeKAtr(ctx: Context): Int = sp(ctx).getInt(KEY_THREE_K_ATR, DEFAULT_THREE_K_ATR)
+    fun getThreeKAtrMult(ctx: Context): Float = sp(ctx).getFloat(KEY_THREE_K_ATR_MULT, DEFAULT_THREE_K_ATR_MULT)
+    fun getThreeKGuard(ctx: Context): Float = sp(ctx).getFloat(KEY_THREE_K_GUARD, DEFAULT_THREE_K_GUARD)
+
+    fun getBollBreakN(ctx: Context): Int = sp(ctx).getInt(KEY_BOLL_BREAK_N, DEFAULT_BOLL_BREAK_N)
+    fun getBollBreakM(ctx: Context): Int = sp(ctx).getInt(KEY_BOLL_BREAK_M, DEFAULT_BOLL_BREAK_M)
+    fun getBollBreakP(ctx: Context): Float = sp(ctx).getFloat(KEY_BOLL_BREAK_P, DEFAULT_BOLL_BREAK_P)
+    fun getBollBreakMaFilter(ctx: Context): Int = sp(ctx).getInt(KEY_BOLL_BREAK_MA_FILTER, DEFAULT_BOLL_BREAK_MA_FILTER)
+
     fun getMacdFast(ctx: Context): Int = sp(ctx).getInt(KEY_MACD_FAST, DEFAULT_MACD_FAST)
     fun getMacdSlow(ctx: Context): Int = sp(ctx).getInt(KEY_MACD_SLOW, DEFAULT_MACD_SLOW)
     fun getMacdSignal(ctx: Context): Int = sp(ctx).getInt(KEY_MACD_SIGNAL, DEFAULT_MACD_SIGNAL)
@@ -456,6 +497,8 @@ object Prefs {
         bollN: Int, bollK: Float,
         superTrendAtr: Int, superTrendFactor: Float,
         turtleEntry: Int, turtleExit: Int, turtleAtr: Int,
+        threeKDonch: Int, threeKEma: Int, threeKAtr: Int, threeKAtrMult: Float,
+        bollBreakN: Int, bollBreakM: Int, bollBreakP: Float, bollBreakMaFilter: Int,
         macdFast: Int, macdSlow: Int, macdSig: Int,
         rsi1: Int, rsi2: Int, rsi3: Int,
         kdjN: Int, kdjM1: Int, kdjM2: Int
@@ -474,6 +517,14 @@ object Prefs {
             .putInt(KEY_TURTLE_ENTRY, turtleEntry.coerceIn(2, 200))
             .putInt(KEY_TURTLE_EXIT, turtleExit.coerceIn(2, 200))
             .putInt(KEY_TURTLE_ATR, turtleAtr.coerceIn(2, 100))
+            .putInt(KEY_THREE_K_DONCH, threeKDonch.coerceIn(2, 200))
+            .putInt(KEY_THREE_K_EMA, threeKEma.coerceIn(2, 200))
+            .putInt(KEY_THREE_K_ATR, threeKAtr.coerceIn(2, 100))
+            .putFloat(KEY_THREE_K_ATR_MULT, threeKAtrMult.coerceIn(0.5f, 10.0f))
+            .putInt(KEY_BOLL_BREAK_N, bollBreakN.coerceIn(1, 200))
+            .putInt(KEY_BOLL_BREAK_M, bollBreakM.coerceIn(1, 200))
+            .putFloat(KEY_BOLL_BREAK_P, bollBreakP.coerceIn(0.1f, 10.0f))
+            .putInt(KEY_BOLL_BREAK_MA_FILTER, bollBreakMaFilter.coerceIn(1, 200))
             .putInt(KEY_MACD_FAST, macdFast.coerceIn(1, 100))
             .putInt(KEY_MACD_SLOW, macdSlow.coerceIn(1, 100))
             .putInt(KEY_MACD_SIGNAL, macdSig.coerceIn(1, 100))
@@ -494,6 +545,8 @@ object Prefs {
             DEFAULT_BOLL_N, DEFAULT_BOLL_K,
             DEFAULT_SUPERTREND_ATR, DEFAULT_SUPERTREND_FACTOR,
             DEFAULT_TURTLE_ENTRY, DEFAULT_TURTLE_EXIT, DEFAULT_TURTLE_ATR,
+            DEFAULT_THREE_K_DONCH, DEFAULT_THREE_K_EMA, DEFAULT_THREE_K_ATR, DEFAULT_THREE_K_ATR_MULT,
+            DEFAULT_BOLL_BREAK_N, DEFAULT_BOLL_BREAK_M, DEFAULT_BOLL_BREAK_P, DEFAULT_BOLL_BREAK_MA_FILTER,
             DEFAULT_MACD_FAST, DEFAULT_MACD_SLOW, DEFAULT_MACD_SIGNAL,
             DEFAULT_RSI1, DEFAULT_RSI2, DEFAULT_RSI3,
             DEFAULT_KDJ_N, DEFAULT_KDJ_M1, DEFAULT_KDJ_M2

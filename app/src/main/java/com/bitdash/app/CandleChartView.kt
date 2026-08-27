@@ -90,6 +90,7 @@ class CandleChartView @JvmOverloads constructor(
     private var threeKResult: Indicators.ThreeKResult? = null
     private var bollBreakResult: Indicators.BollBreakResult? = null
     private var lorentzianResult: Indicators.LorentzianResult? = null
+    private var customPineResults: List<com.bitdash.app.market.PineExecutionResult> = emptyList()
 
     // 副图指标数据
     private var macdResult: Indicators.MacdResult? = null
@@ -316,6 +317,12 @@ class CandleChartView @JvmOverloads constructor(
         style = Paint.Style.STROKE; strokeWidth = 1.2f * density
         pathEffect = DashPathEffect(floatArrayOf(4f * density, 3f * density), 0f)
     }
+    private val customPineLinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+    }
+    private val customPineFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+    }
     private val difPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE; strokeWidth = 1.2f * density
     }
@@ -531,14 +538,18 @@ class CandleChartView @JvmOverloads constructor(
         showHighLow = Prefs.getShowHighLow(context)
         subIndicatorType = Prefs.getSubIndicator(context)
         computeAllIndicators()
+        recomputeDimensions(width, height)
         notifyCurrentIndicatorValues()
         invalidate()
     }
+
+    fun getCandles(): List<Candle> = candles
 
     /** 替换数据，保留当前缩放/平移状态 */
     fun setData(list: List<Candle>) {
         candles = list
         computeAllIndicators()
+        recomputeDimensions(width, height)
         clampScroll()
         if (crossIndex >= 0) {
             if (crossIndex < list.size) {
@@ -829,7 +840,8 @@ class CandleChartView @JvmOverloads constructor(
         axisH = 16f * density * fontScale
         chartW = (w - paddingLeft - paddingRight - axisW).coerceAtLeast(10f)
         val body = (h - paddingTop - paddingBottom - axisH).coerceAtLeast(10f)
-        if (subIndicatorType == "OFF") {
+        val hasSubCustom = customPineResults.any { !it.overlay }
+        if (subIndicatorType == "OFF" && !hasSubCustom) {
             priceH = body
             volH = 0f
             volTop = paddingTop + priceH
@@ -947,6 +959,21 @@ class CandleChartView @JvmOverloads constructor(
                     }
                 }
             }
+            val avgClose = if (sub.isNotEmpty()) sub[0].close else 0.0
+            for (res in customPineResults) {
+                if (res.overlay) {
+                    for (line in res.plotLines) {
+                        if (i < line.series.size) {
+                            val v = line.series[i].toDouble()
+                            // 仅当数值在合理价格尺度内（与K线价格同量级）才纳入主图坐标轴范围
+                            if (v > 0.0 && (avgClose <= 0.0 || (v >= avgClose * 0.15 && v <= avgClose * 6.0))) {
+                                if (v > maxP) maxP = v
+                                if (v < minP) minP = v
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         if (minP == Double.MAX_VALUE) { minP = 0.0; maxP = 1.0 }
@@ -1058,9 +1085,14 @@ class CandleChartView @JvmOverloads constructor(
             }
         }
 
-        // 绘制主图指标状态栏（如 3K、布林突破、洛伦兹分类持仓、止损与中枢线状态）
+        // ---- 5.6 绘制用户自定义 Pine Script v5 脚本 ----
+        if (customPineResults.isNotEmpty()) {
+            drawCustomPineMain(canvas, leftIdx, rightIdx, cw, minP, priceRange)
+        }
+
+        // 绘制主图指标状态栏（如 3K、布林突破、洛伦兹分类、自定义 Pine 指标）
         val targetMainIdx = if (crossIndex in leftIdx..rightIdx) crossIndex else (candles.size - 1)
-        if (targetMainIdx in candles.indices && (showThreeK || showBollBreak || showLorentzian)) {
+        if (targetMainIdx in candles.indices && (showThreeK || showBollBreak || showLorentzian || customPineResults.any { it.overlay })) {
             drawMainIndicatorLegend(canvas, targetMainIdx)
         }
 
@@ -1070,7 +1102,8 @@ class CandleChartView @JvmOverloads constructor(
         }
 
         // ---- 6. 绘制副图指标 ----
-        if (subIndicatorType != "OFF" && volH > 0f) {
+        val hasSubCustom = customPineResults.any { !it.overlay }
+        if ((subIndicatorType != "OFF" || hasSubCustom) && volH > 0f) {
             // 分隔线
             canvas.drawLine(paddingLeft.toFloat(), volTop, paddingLeft + chartW, volTop, gridPaint)
             when (subIndicatorType) {
@@ -1078,6 +1111,9 @@ class CandleChartView @JvmOverloads constructor(
                 "MACD" -> drawSubMacd(canvas, leftIdx, rightIdx, cw, bodyW)
                 "RSI" -> drawSubRsi(canvas, leftIdx, rightIdx, cw)
                 "KDJ" -> drawSubKdj(canvas, leftIdx, rightIdx, cw)
+            }
+            if (hasSubCustom) {
+                drawCustomPineSub(canvas, leftIdx, rightIdx, cw)
             }
             // 绘制副图左上角指标参数及数值详情（十字线选中时为十字线所在K线，否则为最新K线）
             val targetIdx = if (crossIndex in leftIdx..rightIdx) crossIndex else (candles.size - 1)
@@ -1338,6 +1374,24 @@ class CandleChartView @JvmOverloads constructor(
             "KDJ" -> drawSubKdjLegend(canvas, targetIdx)
             "VOL" -> drawSubVolLegend(canvas, targetIdx)
         }
+
+        // 绘制自定义副图指标图例
+        val textY = volTop + 2f * density - subLegendPaint.ascent()
+        var curX = paddingLeft + 4f * density
+        val maxRight = paddingLeft + chartW - 4f * density
+        val spacing = 7f * density
+
+        for (res in customPineResults) {
+            if (!res.overlay) {
+                curX = drawLegendItem(canvas, res.scriptName, 0xFFEAB308.toInt(), curX, textY, maxRight, spacing)
+                for (line in res.plotLines) {
+                    val v = line.series.getOrNull(targetIdx)
+                    if (v != null && !v.isNaN()) {
+                        curX = drawLegendItem(canvas, "${line.title}: ${formatSubVal(v)}", line.color, curX, textY, maxRight, spacing)
+                    }
+                }
+            }
+        }
     }
 
     private fun drawLegendItem(
@@ -1552,6 +1606,18 @@ class CandleChartView @JvmOverloads constructor(
                 }
                 if (stop != null) {
                     drawLegendItem(canvas, "止损: ${formatIndicatorVal(stop)}", 0xFFEC4899.toInt(), curX, textY, maxRight, spacing)
+                }
+            }
+        }
+
+        for (res in customPineResults) {
+            if (res.overlay) {
+                curX = drawLegendItem(canvas, res.scriptName, 0xFFEAB308.toInt(), curX, textY, maxRight, spacing)
+                for (line in res.plotLines) {
+                    val v = line.series.getOrNull(targetIdx)
+                    if (v != null && !v.isNaN()) {
+                        curX = drawLegendItem(canvas, "${line.title}:${formatIndicatorVal(v)}", line.color, curX, textY, maxRight, spacing)
+                    }
                 }
             }
         }
@@ -1924,6 +1990,10 @@ class CandleChartView @JvmOverloads constructor(
         val kM1 = Prefs.getKdjM1(context)
         val kM2 = Prefs.getKdjM2(context)
         kdjResult = Indicators.computeKdj(candles, kN, kM1, kM2)
+
+        // 自定义 Pine Script (v5) 脚本动态求值
+        val customScripts = com.bitdash.app.market.PineScriptManager.getScripts(context).filter { it.enabled }
+        customPineResults = customScripts.map { com.bitdash.app.market.PineEngine.execute(it, candles) }
     }
 
     private fun drawThreeKStrategy(
@@ -2311,6 +2381,210 @@ class CandleChartView @JvmOverloads constructor(
                     canvas.drawText(label, x, badgeT + badgePadV - threeKSignalTextPaint.ascent(), threeKSignalTextPaint)
                 }
                 else -> {}
+            }
+        }
+    }
+
+    private fun drawCustomPineMain(
+        canvas: Canvas,
+        leftIdx: Int,
+        rightIdx: Int,
+        cw: Float,
+        minP: Double,
+        range: Double
+    ) {
+        val badgePadH = 3.5f * density
+        val badgePadV = 2f * density
+        val arrowSize = 3.5f * density
+
+        for (res in customPineResults) {
+            if (!res.overlay) continue
+
+            // 1. 绘制 fills 填充区域
+            for (fill in res.fills) {
+                if (fill.line1Index in res.plotLines.indices && fill.line2Index in res.plotLines.indices) {
+                    val l1 = res.plotLines[fill.line1Index].series
+                    val l2 = res.plotLines[fill.line2Index].series
+                    linePath.reset()
+                    var hasFill = false
+                    for (i in leftIdx..rightIdx) {
+                        if (i < l1.size && l1[i] > 0f) {
+                            val x = xOfIndex(i.toFloat())
+                            val y = yOfPrice(l1[i].toDouble(), minP, range)
+                            if (!hasFill) {
+                                linePath.moveTo(x, y)
+                                hasFill = true
+                            } else {
+                                linePath.lineTo(x, y)
+                            }
+                        }
+                    }
+                    if (hasFill) {
+                        for (i in rightIdx downTo leftIdx) {
+                            if (i < l2.size && l2[i] > 0f) {
+                                val x = xOfIndex(i.toFloat())
+                                val y = yOfPrice(l2[i].toDouble(), minP, range)
+                                linePath.lineTo(x, y)
+                            }
+                        }
+                        linePath.close()
+                        customPineFillPaint.color = fill.color
+                        canvas.drawPath(linePath, customPineFillPaint)
+                    }
+                }
+            }
+
+            // 2. 绘制 plotLines 曲线
+            for (line in res.plotLines) {
+                customPineLinePaint.color = line.color
+                customPineLinePaint.strokeWidth = line.lineWidth * density
+                drawLineSeries(canvas, line.series, leftIdx, rightIdx, cw, minP, range, customPineLinePaint)
+            }
+
+            // 3. 绘制 plotShapes 买卖信号徽标
+            for (shape in res.plotShapes) {
+                for (i in leftIdx..rightIdx) {
+                    if (i < shape.indices.size && shape.indices[i]) {
+                        val c = candles[i]
+                        val x = xOfIndex(i.toFloat())
+                        val label = shape.text.ifEmpty { if (shape.isBuy) "多" else "空" }
+
+                        if (shape.isBuy) {
+                            val lowY = yOfPrice(c.low, minP, range)
+                            val arrowTop = lowY + 4f * density
+                            val arrowBottom = arrowTop + arrowSize
+
+                            linePath.reset()
+                            linePath.moveTo(x, arrowTop)
+                            linePath.lineTo(x - arrowSize, arrowBottom)
+                            linePath.lineTo(x + arrowSize, arrowBottom)
+                            linePath.close()
+                            threeKSignalBgPaint.color = shape.color
+                            canvas.drawPath(linePath, threeKSignalBgPaint)
+
+                            val tw = threeKSignalTextPaint.measureText(label)
+                            val th = threeKSignalTextPaint.descent() - threeKSignalTextPaint.ascent()
+                            val badgeW = tw + badgePadH * 2f
+                            val badgeH = th + badgePadV * 2f
+                            val badgeL = x - badgeW / 2f
+                            val badgeT = arrowBottom + 1.5f * density
+                            val rect = RectF(badgeL, badgeT, badgeL + badgeW, badgeT + badgeH)
+                            canvas.drawRoundRect(rect, 3f * density, 3f * density, threeKSignalBgPaint)
+                            canvas.drawText(label, x, badgeT + badgePadV - threeKSignalTextPaint.ascent(), threeKSignalTextPaint)
+                        } else {
+                            val highY = yOfPrice(c.high, minP, range)
+                            val arrowBottom = highY - 4f * density
+                            val arrowTop = arrowBottom - arrowSize
+
+                            linePath.reset()
+                            linePath.moveTo(x, arrowBottom)
+                            linePath.lineTo(x - arrowSize, arrowTop)
+                            linePath.lineTo(x + arrowSize, arrowTop)
+                            linePath.close()
+                            threeKSignalBgPaint.color = shape.color
+                            canvas.drawPath(linePath, threeKSignalBgPaint)
+
+                            val tw = threeKSignalTextPaint.measureText(label)
+                            val th = threeKSignalTextPaint.descent() - threeKSignalTextPaint.ascent()
+                            val badgeW = tw + badgePadH * 2f
+                            val badgeH = th + badgePadV * 2f
+                            val badgeL = x - badgeW / 2f
+                            val badgeT = arrowTop - 1.5f * density - badgeH
+                            val rect = RectF(badgeL, badgeT, badgeL + badgeW, badgeT + badgeH)
+                            canvas.drawRoundRect(rect, 3f * density, 3f * density, threeKSignalBgPaint)
+                            canvas.drawText(label, x, badgeT + badgePadV - threeKSignalTextPaint.ascent(), threeKSignalTextPaint)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun drawCustomPineSub(
+        canvas: Canvas,
+        leftIdx: Int,
+        rightIdx: Int,
+        cw: Float
+    ) {
+        for (res in customPineResults) {
+            if (res.overlay) continue
+
+            // 1. 计算当前可见区间内所有 plot 序列的最小值与最大值
+            var minV = Double.MAX_VALUE
+            var maxV = -Double.MAX_VALUE
+            for (line in res.plotLines) {
+                for (i in leftIdx..rightIdx) {
+                    if (i < line.series.size) {
+                        val v = line.series[i].toDouble()
+                        if (!v.isNaN()) {
+                            if (v < minV) minV = v
+                            if (v > maxV) maxV = v
+                        }
+                    }
+                }
+            }
+            if (minV == Double.MAX_VALUE) {
+                minV = 0.0
+                maxV = 100.0
+            }
+            if (maxV <= minV) maxV = minV + 1.0
+            val pad = (maxV - minV) * 0.08
+            val effMin = minV - pad
+            val effRange = (maxV - minV + pad * 2.0).coerceAtLeast(1e-6)
+
+            // 2. 绘制 fill 填充带
+            for (fill in res.fills) {
+                if (fill.line1Index in res.plotLines.indices && fill.line2Index in res.plotLines.indices) {
+                    val l1 = res.plotLines[fill.line1Index].series
+                    val l2 = res.plotLines[fill.line2Index].series
+                    linePath.reset()
+                    var hasFill = false
+                    for (i in leftIdx..rightIdx) {
+                        if (i < l1.size) {
+                            val x = xOfIndex(i.toFloat())
+                            val frac = ((l1[i] - effMin) / effRange).toFloat().coerceIn(0f, 1f)
+                            val y = volTop + volH * (1f - frac)
+                            if (!hasFill) {
+                                linePath.moveTo(x, y)
+                                hasFill = true
+                            } else {
+                                linePath.lineTo(x, y)
+                            }
+                        }
+                    }
+                    if (hasFill) {
+                        for (i in rightIdx downTo leftIdx) {
+                            if (i < l2.size) {
+                                val x = xOfIndex(i.toFloat())
+                                val frac = ((l2[i] - effMin) / effRange).toFloat().coerceIn(0f, 1f)
+                                val y = volTop + volH * (1f - frac)
+                                linePath.lineTo(x, y)
+                            }
+                        }
+                        linePath.close()
+                        customPineFillPaint.color = fill.color
+                        canvas.drawPath(linePath, customPineFillPaint)
+                    }
+                }
+            }
+
+            // 3. 绘制 plotLines 曲线与常数参考线
+            for (line in res.plotLines) {
+                customPineLinePaint.color = line.color
+                customPineLinePaint.strokeWidth = line.lineWidth * density
+                drawSubSeries(canvas, line.series, leftIdx, rightIdx, cw, effMin, effRange, customPineLinePaint)
+
+                // 若为常数线（例如超买 70 / 超卖 30），在右侧坐标轴画出刻度
+                if (leftIdx < line.series.size && rightIdx < line.series.size) {
+                    val isConstant = (line.series[leftIdx] == line.series[rightIdx]) && (line.title.contains("超") || line.title.contains("线") || line.title.contains("Level"))
+                    if (isConstant) {
+                        val constV = line.series[leftIdx]
+                        val frac = ((constV - effMin) / effRange).toFloat().coerceIn(0f, 1f)
+                        val y = volTop + volH * (1f - frac)
+                        val labelDy = -(textPaint.ascent() + textPaint.descent()) / 2f
+                        canvas.drawText(formatSubVal(constV), paddingLeft + chartW + 4f * density, y + labelDy, textPaint)
+                    }
+                }
             }
         }
     }

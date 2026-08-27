@@ -791,6 +791,15 @@ class ChartActivity : BaseActivity() {
             Toast.makeText(this, hint, Toast.LENGTH_SHORT).show()
         }
 
+        val idScriptMgr = menuId++
+        popup.menu.add(0, idScriptMgr, idScriptMgr, "📝 自定义 Pine 脚本管理...")
+        itemActionMap[idScriptMgr] = {
+            ScriptManagerDialog.show(this, chart.getCandles()) {
+                updateIndicatorTabsUI()
+                chart.refreshIndicatorToggles()
+            }
+        }
+
         popup.setOnMenuItemClickListener { item ->
             itemActionMap[item.itemId]?.invoke()
             true
@@ -912,9 +921,10 @@ class ChartActivity : BaseActivity() {
             (isRsiOverflowed && Prefs.getSubIndicator(this) == "RSI") ||
             (isKdjOverflowed && Prefs.getSubIndicator(this) == "KDJ")
 
+        val hasActiveCustomScript = com.bitdash.app.market.PineScriptManager.getScripts(this).any { it.enabled }
         val moreActive = Prefs.getShowSuperTrend(this) || Prefs.getShowFibonacci(this) ||
             Prefs.getShowTurtle(this) || Prefs.getShowThreeK(this) || Prefs.getShowBollBreak(this) ||
-            Prefs.getShowLorentzian(this) || chart.isRulerMode || anyOverflowActive
+            Prefs.getShowLorentzian(this) || hasActiveCustomScript || chart.isRulerMode || anyOverflowActive
         tvMoreIndicators?.alpha = if (moreActive) 1.0f else 0.55f
 
         val sub = Prefs.getSubIndicator(this)

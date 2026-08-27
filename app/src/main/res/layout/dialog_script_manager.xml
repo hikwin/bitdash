@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/bg_card"
+    android:orientation="vertical"
+    android:paddingStart="14dp"
+    android:paddingTop="12dp"
+    android:paddingEnd="14dp"
+    android:paddingBottom="12dp">
+
+    <!-- 顶部标题与新建按钮 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="📝 Pine Script 脚本管理"
+            android:textColor="@color/text_main"
+            android:textSize="17sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnAddNewScript"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:backgroundTint="@color/brand"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:text="+ 新建脚本"
+            android:textColor="@color/black"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:layout_marginBottom="8dp"
+        android:text="勾选即可在图表上实时计算并叠加展示 (支持标准 Pine v5)"
+        android:textColor="@color/text_muted"
+        android:textSize="11sp" />
+
+    <!-- 脚本列表容器 -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="380dp"
+        android:fadeScrollbars="false">
+
+        <LinearLayout
+            android:id="@+id/layoutScriptList"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+    </ScrollView>
+
+    <!-- 底部操作栏 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:gravity="end"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnImportTemplate"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:layout_marginEnd="8dp"
+            android:backgroundTint="@color/bg_surface"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:text="恢复预置模板"
+            android:textColor="@color/text_main"
+            android:textSize="12sp" />
+
+        <Button
+            android:id="@+id/btnCloseDialog"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:backgroundTint="@color/brand"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:text="完成"
+            android:textColor="@color/black"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+</LinearLayout>

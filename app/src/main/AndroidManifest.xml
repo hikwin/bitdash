@@ -35,6 +35,10 @@
             android:name=".ChartActivity"
             android:exported="false" />
 
+        <activity
+            android:name=".AutoTradingActivity"
+            android:exported="false" />
+
         <service
             android:name=".FloatingWindowService"
             android:exported="false"

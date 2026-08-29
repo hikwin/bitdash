@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/bg"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <!-- 1. 顶部标题栏 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="⚡ 策略历史 K 线回测报告"
+                android:textColor="@color/text_main"
+                android:textSize="17sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvBtHeaderMeta"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textColor="@color/text_muted"
+                android:textSize="11sp"
+                tools:text="3K 趋势突破 · BTC-USDT 15m (150 根 K 线)" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnBtClose"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:text="关闭"
+            android:textColor="@color/brand" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:background="@color/border" />
+
+    <!-- 2. 绩效看板总览卡片 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_card_rounded"
+        android:orientation="vertical"
+        android:padding="12dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="净盈利金额 / 收益率"
+                    android:textColor="@color/text_dim"
+                    android:textSize="11sp" />
+
+                <TextView
+                    android:id="@+id/tvBtNetProfit"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:textSize="22sp"
+                    android:textStyle="bold"
+                    tools:text="+$1,842.50 (+18.42%)" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="期末净值"
+                    android:textColor="@color/text_dim"
+                    android:textSize="11sp" />
+
+                <TextView
+                    android:id="@+id/tvBtFinalBalance"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:textColor="@color/text_main"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    tools:text="$11,842.50" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0.5dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
+            android:background="@color/border" />
+
+        <!-- 4 宫格统计 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="胜率 (胜 / 负)"
+                    android:textColor="@color/text_dim"
+                    android:textSize="10sp" />
+
+                <TextView
+                    android:id="@+id/tvBtWinRate"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:textColor="@color/text_main"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    tools:text="72.2% (13/5)" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="交易总笔数"
+                    android:textColor="@color/text_dim"
+                    android:textSize="10sp" />
+
+                <TextView
+                    android:id="@+id/tvBtTotalTrades"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:textColor="@color/text_main"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    tools:text="18 笔" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="盈亏比 (PF)"
+                    android:textColor="@color/text_dim"
+                    android:textSize="10sp" />
+
+                <TextView
+                    android:id="@+id/tvBtProfitFactor"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:textColor="@color/text_main"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    tools:text="2.65" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="最大回撤 (MDD)"
+                    android:textColor="@color/text_dim"
+                    android:textSize="10sp" />
+
+                <TextView
+                    android:id="@+id/tvBtMaxDd"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:textColor="@color/up"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    tools:text="3.85%" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- 3. 逐笔交易明细列表 -->
+    <TextView
+        android:id="@+id/tvBtTradeSectionTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="6dp"
+        android:text="逐笔交易明细流水"
+        android:textColor="@color/text_main"
+        android:textSize="13sp"
+        android:textStyle="bold" />
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="260dp"
+        android:background="@drawable/bg_card_rounded">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvBtTrades"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp" />
+
+        <TextView
+            android:id="@+id/tvBtEmptyTrades"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:text="在所选 K 线区间内暂无符合策略触发条件的交易"
+            android:textColor="@color/text_dim"
+            android:textSize="12sp"
+            android:visibility="gone" />
+    </FrameLayout>
+
+</LinearLayout>

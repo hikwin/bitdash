@@ -11,52 +11,86 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.bitdash.app.market.AshareMarkets
 import com.bitdash.app.market.Markets
+import com.bitdash.app.market.MarketSource
 import com.bitdash.app.market.Prefs
+import com.bitdash.app.market.RwaMarkets
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * 行情源选择弹窗。
- *
- * 展示"自动选择"加全部候选源，并在后台并发探测每个源的连通性与延迟，
- * 让用户能直观看出哪些源在当前网络下可用（内地网络尤其需要）。
+ * 行情源选择弹窗 (支持加密货币行情源、RWA / 美股行情源与 A 股行情源独立选择与记忆)。
  */
 object SourcePicker {
 
-    /**
-     * @param onPicked 用户选定并关闭弹窗后回调（选择已写入 [Prefs]）
-     */
     fun show(activity: Activity, onPicked: () -> Unit) {
+        showCrypto(activity, onPicked)
+    }
+
+    fun showCrypto(activity: Activity, onPicked: () -> Unit) {
+        showInternal(activity, mode = Prefs.TAB_CRYPTO, onPicked)
+    }
+
+    fun showRwa(activity: Activity, onPicked: () -> Unit) {
+        showInternal(activity, mode = Prefs.TAB_US_STOCK, onPicked)
+    }
+
+    fun showAshare(activity: Activity, onPicked: () -> Unit) {
+        showInternal(activity, mode = Prefs.TAB_A_SHARE, onPicked)
+    }
+
+    private fun showInternal(activity: Activity, mode: Int, onPicked: () -> Unit) {
         val owner = activity as? LifecycleOwner ?: return
 
         val view = LayoutInflater.from(activity).inflate(R.layout.dialog_source, null)
         val recycler = view.findViewById<RecyclerView>(R.id.recyclerSource)
         recycler.layoutManager = LinearLayoutManager(activity)
 
-        val rows = buildRows(activity)
+        val rows = buildRows(activity, mode)
         val adapter = SourceAdapter(activity, rows)
         recycler.adapter = adapter
 
+        val titleStr = when (mode) {
+            Prefs.TAB_A_SHARE -> "选择 A 股行情源"
+            Prefs.TAB_US_STOCK -> "选择 RWA / 美股行情源"
+            else -> activity.getString(R.string.source_title)
+        }
+
         val dialog = AlertDialog.Builder(activity)
-            .setTitle(R.string.source_title)
+            .setTitle(titleStr)
             .setView(view)
             .setNegativeButton(android.R.string.cancel, null)
             .create()
 
         adapter.onPick = { row ->
-            Prefs.saveSourceId(activity, row.id)
+            when (mode) {
+                Prefs.TAB_A_SHARE -> Prefs.saveAshareSourceId(activity, row.id)
+                Prefs.TAB_US_STOCK -> Prefs.saveRwaSourceId(activity, row.id)
+                else -> Prefs.saveSourceId(activity, row.id)
+            }
             dialog.dismiss()
             onPicked()
         }
 
         dialog.show()
 
-        // 后台逐个探测延迟（串行，避免同时打开 7 条 TLS 连接拖慢彼此）
+        // 后台逐个探测延迟
         owner.lifecycleScope.launch(Dispatchers.Main) {
-            Markets.SOURCES.forEachIndexed { _, src ->
-                val ms = withContext(Dispatchers.IO) { Markets.probe(src) }
+            val sources = when (mode) {
+                Prefs.TAB_A_SHARE -> AshareMarkets.SOURCES
+                Prefs.TAB_US_STOCK -> RwaMarkets.SOURCES
+                else -> Markets.SOURCES.filter { it.id != "us_stock" }
+            }
+            sources.forEach { src ->
+                val ms = withContext(Dispatchers.IO) {
+                    when (mode) {
+                        Prefs.TAB_A_SHARE -> AshareMarkets.probe(src)
+                        Prefs.TAB_US_STOCK -> RwaMarkets.probe(src)
+                        else -> Markets.probe(src)
+                    }
+                }
                 val idx = rows.indexOfFirst { it.id == src.id }
                 if (idx >= 0) {
                     rows[idx].latencyMs = ms
@@ -67,20 +101,54 @@ object SourcePicker {
         }
     }
 
-    private fun buildRows(activity: Activity): MutableList<Row> {
-        val current = Prefs.getSourceId(activity)
+    private fun buildRows(activity: Activity, mode: Int): MutableList<Row> {
         val rows = ArrayList<Row>()
-        rows.add(
-            Row(
-                id = Markets.AUTO,
-                title = activity.getString(R.string.source_auto),
-                note = activity.getString(R.string.source_auto_note),
-                selected = current == Markets.AUTO,
-                probed = true          // 自动项不需要探测
-            )
-        )
-        Markets.SOURCES.forEach {
-            rows.add(Row(it.id, it.displayName, it.note, current == it.id))
+        when (mode) {
+            Prefs.TAB_A_SHARE -> {
+                val current = Prefs.getAshareSourceId(activity)
+                rows.add(
+                    Row(
+                        id = AshareMarkets.AUTO,
+                        title = "自动优选 (新浪 A 股直连)",
+                        note = "自动尝试并记忆最佳 A 股行情节点",
+                        selected = current == AshareMarkets.AUTO,
+                        probed = true
+                    )
+                )
+                AshareMarkets.SOURCES.forEach {
+                    rows.add(Row(it.id, it.displayName, it.note, current == it.id))
+                }
+            }
+            Prefs.TAB_US_STOCK -> {
+                val current = Prefs.getRwaSourceId(activity)
+                rows.add(
+                    Row(
+                        id = RwaMarkets.AUTO,
+                        title = "自动优选 (RWA 全球节点)",
+                        note = "自动尝试并记忆最佳 RWA/美股行情节点",
+                        selected = current == RwaMarkets.AUTO,
+                        probed = true
+                    )
+                )
+                RwaMarkets.SOURCES.forEach {
+                    rows.add(Row(it.id, it.displayName, it.note, current == it.id))
+                }
+            }
+            else -> {
+                val current = Prefs.getSourceId(activity)
+                rows.add(
+                    Row(
+                        id = Markets.AUTO,
+                        title = activity.getString(R.string.source_auto),
+                        note = activity.getString(R.string.source_auto_note),
+                        selected = current == Markets.AUTO,
+                        probed = true
+                    )
+                )
+                Markets.SOURCES.filter { it.id != "us_stock" }.forEach {
+                    rows.add(Row(it.id, it.displayName, it.note, current == it.id))
+                }
+            }
         }
         return rows
     }
@@ -112,8 +180,7 @@ object SourcePicker {
             holder.note.text = r.note
             holder.check.visibility = if (r.selected) View.VISIBLE else View.INVISIBLE
 
-            // 自动项不显示探测结果
-            if (r.id == Markets.AUTO) {
+            if (r.id == Markets.AUTO || r.id == RwaMarkets.AUTO || r.id == AshareMarkets.AUTO) {
                 holder.status.text = ""
             } else if (!r.probed) {
                 holder.status.text = activity.getString(R.string.source_probing)
@@ -125,7 +192,6 @@ object SourcePicker {
                     holder.status.setTextColor(COLOR_DOWN)
                 } else {
                     holder.status.text = activity.getString(R.string.source_latency, ms)
-                    // 延迟分档着色，让用户一眼看出优劣
                     holder.status.setTextColor(if (ms < 1500) COLOR_OK else COLOR_WARN)
                 }
             }

@@ -129,4 +129,20 @@
     <string name="floating_in_watchlist">自选</string>
     <string name="floating_alpha_title">悬浮窗不透明度</string>
     <string name="floating_alpha_percent">%1$d%%</string>
+
+    <!-- 自动化交易 -->
+    <string name="auto_trading_title">AI 自动化模拟交易</string>
+    <string name="auto_trading_paper_tag">模拟盘 · 10000U</string>
+    <string name="auto_trading_reset_funds">重置资金</string>
+    <string name="auto_trading_reset_confirm_title">重置模拟资金</string>
+    <string name="auto_trading_reset_confirm_msg">重置后账户资金将恢复至默认 10,000 USDT，并清空当前持仓与历史记录。确定重置吗？</string>
+    <string name="auto_trading_reset_done">模拟资金已重置为 10,000 USDT</string>
+    <string name="auto_trading_start">启动自动交易</string>
+    <string name="auto_trading_stop">停止自动交易</string>
+    <string name="auto_trading_running">● 运行中</string>
+    <string name="auto_trading_stopped">○ 已停止</string>
+    <string name="auto_trading_strategy_3k">3K 趋势突破策略 (BTC 1D Trend Alpha)</string>
+    <string name="auto_trading_strategy_lorentz">洛伦兹机器学习分类 (Lorentzian ML)</string>
+    <string name="auto_trading_strategy_ema_cross">双均线交叉 (EMA 9/21)</string>
+    <string name="auto_trading_strategy_pine">自定义 Pine Script 策略</string>
 </resources>

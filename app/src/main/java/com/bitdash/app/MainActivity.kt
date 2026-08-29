@@ -19,6 +19,7 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import com.bitdash.app.market.AshareMarkets
 import com.bitdash.app.market.Fmt
 import com.bitdash.app.market.Markets
 import com.bitdash.app.market.Palette
@@ -27,7 +28,10 @@ import com.bitdash.app.market.RealtimeSession
 import com.bitdash.app.market.RtEvent
 import com.bitdash.app.market.RtScope
 import com.bitdash.app.market.RtSub
+import com.bitdash.app.market.RwaHttpSource
+import com.bitdash.app.market.RwaMarkets
 import com.bitdash.app.market.Ticker
+import com.bitdash.app.market.UsStockSource
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -50,7 +54,14 @@ class MainActivity : BaseActivity() {
     private lateinit var recycler: RecyclerView
     private lateinit var emptyView: TextView
     private lateinit var sourceLabel: TextView
+    private lateinit var tabCryptoWatch: TextView
+    private lateinit var tabUsStockWatch: TextView
+    private lateinit var tabAshareWatch: TextView
+    private lateinit var btnSourceLayout: View
     private val adapter = WatchAdapter()
+
+    /** 当前选中的主页 Tab：0=加密自选，1=美股，2=A股 */
+    private var currentTabMode = Prefs.TAB_CRYPTO
 
     /** 进行中的刷新任务，避免自动刷新与下拉刷新叠加 */
     private var loadJob: Job? = null
@@ -83,10 +94,16 @@ class MainActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        currentTabMode = Prefs.getHomeTabMode(this)
+
         refresh = findViewById(R.id.refresh)
         recycler = findViewById(R.id.recycler)
         emptyView = findViewById(R.id.emptyView)
         sourceLabel = findViewById(R.id.tvSource)
+        btnSourceLayout = findViewById(R.id.btnSource)
+        tabCryptoWatch = findViewById(R.id.tabCryptoWatch)
+        tabUsStockWatch = findViewById(R.id.tabUsStockWatch)
+        tabAshareWatch = findViewById(R.id.tabAshareWatch)
 
         recycler.layoutManager = LinearLayoutManager(this)
         recycler.adapter = adapter
@@ -109,11 +126,28 @@ class MainActivity : BaseActivity() {
         refresh.setColorSchemeColors(COLOR_BRAND)
         refresh.setOnRefreshListener { loadPrices(showPull = true) }
 
+        updateTabStyles()
+
+        tabCryptoWatch.setOnClickListener {
+            switchTab(Prefs.TAB_CRYPTO)
+        }
+
+        tabUsStockWatch.setOnClickListener {
+            switchTab(Prefs.TAB_US_STOCK)
+        }
+
+        tabAshareWatch.setOnClickListener {
+            switchTab(Prefs.TAB_A_SHARE)
+        }
+
+        findViewById<View>(R.id.btnAutoTrade).setOnClickListener {
+            AutoTradingActivity.start(this)
+        }
         findViewById<View>(R.id.btnAdd).setOnClickListener {
             startActivity(Intent(this, SearchActivity::class.java))
         }
         // 顶部源标签 → 直接打开选择行情源弹窗
-        findViewById<View>(R.id.btnSource).setOnClickListener { openSourcePicker() }
+        btnSourceLayout.setOnClickListener { openSourcePicker() }
         findViewById<View>(R.id.btnSettings).setOnClickListener { openSettings() }
 
         // 若用户开启了悬浮窗且拥有权限，自动恢复悬浮窗服务
@@ -122,6 +156,42 @@ class MainActivity : BaseActivity() {
                 FloatingWindowService.start(this)
             }
         }
+    }
+
+    private fun switchTab(mode: Int) {
+        if (currentTabMode == mode) return
+        currentTabMode = mode
+        Prefs.saveHomeTabMode(this, mode)
+        updateTabStyles()
+        syncRows()
+        loadPrices(showPull = false)
+        applyRefreshStrategy()
+    }
+
+    private fun updateTabStyles() {
+        tabCryptoWatch.background = null
+        tabCryptoWatch.setTextColor(ContextCompat.getColor(this, R.color.text_dim))
+        tabUsStockWatch.background = null
+        tabUsStockWatch.setTextColor(ContextCompat.getColor(this, R.color.text_dim))
+        tabAshareWatch.background = null
+        tabAshareWatch.setTextColor(ContextCompat.getColor(this, R.color.text_dim))
+
+        when (currentTabMode) {
+            Prefs.TAB_A_SHARE -> {
+                tabAshareWatch.setBackgroundResource(R.drawable.bg_tab_selected)
+                tabAshareWatch.setTextColor(ContextCompat.getColor(this, R.color.brand))
+            }
+            Prefs.TAB_US_STOCK -> {
+                tabUsStockWatch.setBackgroundResource(R.drawable.bg_tab_selected)
+                tabUsStockWatch.setTextColor(ContextCompat.getColor(this, R.color.brand))
+            }
+            else -> {
+                tabCryptoWatch.setBackgroundResource(R.drawable.bg_tab_selected)
+                tabCryptoWatch.setTextColor(ContextCompat.getColor(this, R.color.brand))
+            }
+        }
+        btnSourceLayout.visibility = View.VISIBLE
+        updateSourceLabel()
     }
 
     private fun setupItemTouchHelper() {
@@ -157,7 +227,12 @@ class MainActivity : BaseActivity() {
                 super.clearView(recyclerView, viewHolder)
                 viewHolder.itemView.animate().scaleX(1.0f).scaleY(1.0f).alpha(1.0f).setDuration(120).start()
                 // 拖拽排序完成，立即持久化保存新排序
-                Prefs.saveWatchlist(this@MainActivity, adapter.getCurrentSymbols())
+                val currentSymbols = adapter.getCurrentSymbols()
+                when (currentTabMode) {
+                    Prefs.TAB_A_SHARE -> Prefs.saveAshareWatchlist(this@MainActivity, currentSymbols)
+                    Prefs.TAB_US_STOCK -> Prefs.saveUsStockWatchlist(this@MainActivity, currentSymbols)
+                    else -> Prefs.saveWatchlist(this@MainActivity, currentSymbols)
+                }
             }
 
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
@@ -165,7 +240,11 @@ class MainActivity : BaseActivity() {
                 if (pos == RecyclerView.NO_POSITION) return
                 val removed = adapter.removeItem(pos)
                 val newWatch = adapter.getCurrentSymbols()
-                Prefs.saveWatchlist(this@MainActivity, newWatch)
+                when (currentTabMode) {
+                    Prefs.TAB_A_SHARE -> Prefs.saveAshareWatchlist(this@MainActivity, newWatch)
+                    Prefs.TAB_US_STOCK -> Prefs.saveUsStockWatchlist(this@MainActivity, newWatch)
+                    else -> Prefs.saveWatchlist(this@MainActivity, newWatch)
+                }
                 // 自选变了，实时订阅要跟着退订，否则继续收无用推送
                 applyRefreshStrategy()
 
@@ -175,7 +254,12 @@ class MainActivity : BaseActivity() {
                     Snackbar.LENGTH_LONG
                 ).setAction(R.string.undo) {
                     adapter.insertItem(pos, removed)
-                    Prefs.saveWatchlist(this@MainActivity, adapter.getCurrentSymbols())
+                    val restored = adapter.getCurrentSymbols()
+                    when (currentTabMode) {
+                        Prefs.TAB_A_SHARE -> Prefs.saveAshareWatchlist(this@MainActivity, restored)
+                        Prefs.TAB_US_STOCK -> Prefs.saveUsStockWatchlist(this@MainActivity, restored)
+                        else -> Prefs.saveWatchlist(this@MainActivity, restored)
+                    }
                     applyRefreshStrategy()
                 }.show()
             }
@@ -241,10 +325,26 @@ class MainActivity : BaseActivity() {
     }
 
     private fun openSourcePicker() {
-        SourcePicker.show(this) {
-            updateSourceLabel()
-            applyRefreshStrategy()
-            loadPrices(showPull = true)
+        when (currentTabMode) {
+            Prefs.TAB_A_SHARE -> {
+                SourcePicker.showAshare(this) {
+                    updateSourceLabel()
+                    loadPrices(showPull = true)
+                }
+            }
+            Prefs.TAB_US_STOCK -> {
+                SourcePicker.showRwa(this) {
+                    updateSourceLabel()
+                    loadPrices(showPull = true)
+                }
+            }
+            else -> {
+                SourcePicker.showCrypto(this) {
+                    updateSourceLabel()
+                    applyRefreshStrategy()
+                    loadPrices(showPull = true)
+                }
+            }
         }
     }
 
@@ -265,6 +365,14 @@ class MainActivity : BaseActivity() {
      * 每次自选变化、设置变化、连接状态变化都要调，保证 WS 与轮询不会同时跑。
      */
     private fun applyRefreshStrategy() {
+        if (currentTabMode == Prefs.TAB_US_STOCK || currentTabMode == Prefs.TAB_A_SHARE) {
+            rt?.stop()
+            handler.removeCallbacks(autoRefresh)
+            intervalMs = Prefs.getRefreshMs(this).coerceAtLeast(3000L)
+            if (intervalMs > 0) handler.postDelayed(autoRefresh, intervalMs)
+            return
+        }
+
         val session = rt ?: return
         val watch = adapter.getCurrentSymbols().ifEmpty { Prefs.getWatchlist(this) }
 
@@ -327,6 +435,28 @@ class MainActivity : BaseActivity() {
 
     /** 顶部显示当前源；自动模式下附带实际生效的源名，实时连通时加"实时"标记 */
     private fun updateSourceLabel() {
+        if (currentTabMode == Prefs.TAB_A_SHARE) {
+            val chosenAsh = Prefs.getAshareSourceId(this)
+            val baseAsh = if (chosenAsh == AshareMarkets.AUTO) {
+                "自动 · 新浪 A 股"
+            } else {
+                AshareMarkets.byId(chosenAsh)?.displayName ?: "新浪 A 股"
+            }
+            sourceLabel.text = baseAsh
+            return
+        }
+
+        if (currentTabMode == Prefs.TAB_US_STOCK) {
+            val chosenRwa = Prefs.getRwaSourceId(this)
+            val baseRwa = if (chosenRwa == RwaMarkets.AUTO) {
+                "自动 · 新浪直连"
+            } else {
+                RwaMarkets.byId(chosenRwa)?.displayName ?: "新浪美股"
+            }
+            sourceLabel.text = baseRwa
+            return
+        }
+
         val chosen = Prefs.getSourceId(this)
         val base = if (chosen == Markets.AUTO) {
             val actual = Markets.lastUsedId?.let { Markets.byId(it)?.displayName }
@@ -344,12 +474,20 @@ class MainActivity : BaseActivity() {
 
     /** 按本地自选顺序重排列表，保留已有的行情数据 */
     private fun syncRows() {
-        val watch = Prefs.getWatchlist(this)
+        val watch = when (currentTabMode) {
+            Prefs.TAB_A_SHARE -> Prefs.getAshareWatchlist(this)
+            Prefs.TAB_US_STOCK -> Prefs.getUsStockWatchlist(this)
+            else -> Prefs.getWatchlist(this)
+        }
         adapter.submit(watch.map { adapter.cached(it) ?: placeholder(it) })
     }
 
     private fun loadPrices(showPull: Boolean) {
-        val watch = Prefs.getWatchlist(this)
+        val watch = when (currentTabMode) {
+            Prefs.TAB_A_SHARE -> Prefs.getAshareWatchlist(this)
+            Prefs.TAB_US_STOCK -> Prefs.getUsStockWatchlist(this)
+            else -> Prefs.getWatchlist(this)
+        }
         if (watch.isEmpty()) {
             adapter.submit(emptyList())
             // 空列表也要收起转圈，否则下拉后指示器一直转
@@ -360,18 +498,34 @@ class MainActivity : BaseActivity() {
         loadJob?.cancel()
         loadJob = lifecycleScope.launch(Dispatchers.Main) {
             try {
-                // 一次全量请求，本地按自选过滤（比逐个请求省一个数量级）
                 val map = withContext(Dispatchers.IO) {
-                    val want = watch.toHashSet()
-                    val m = HashMap<String, Ticker>(want.size)
-                    Markets.withSource(this@MainActivity) { src ->
-                        src.allTickers().forEach { if (want.contains(it.symbol)) m[it.symbol] = it }
+                    when (currentTabMode) {
+                        Prefs.TAB_A_SHARE -> {
+                            val quotes = AshareMarkets.fetchQuotes(this@MainActivity, watch)
+                            val m = HashMap<String, Ticker>(quotes.size)
+                            quotes.forEach { m[it.symbol] = it }
+                            m
+                        }
+                        Prefs.TAB_US_STOCK -> {
+                            val quotes = RwaMarkets.fetchQuotes(this@MainActivity, watch)
+                            val m = HashMap<String, Ticker>(quotes.size)
+                            quotes.forEach { m[it.symbol] = it }
+                            m
+                        }
+                        else -> {
+                            // 一次全量请求，本地按自选过滤（比逐个请求省一个数量级）
+                            val want = watch.toHashSet()
+                            val m = HashMap<String, Ticker>(want.size)
+                            Markets.withSource(this@MainActivity) { src ->
+                                src.allTickers().forEach { if (want.contains(it.symbol)) m[it.symbol] = it }
+                            }
+                            m
+                        }
                     }
-                    m
                 }
                 // 保持自选顺序；该源没有的币种保留占位行而不是消失
                 // 实时已连通时，慢到达的 REST 快照不能覆盖更新的推送价
-                val preferCached = rt?.isConnected() == true
+                val preferCached = rt?.isConnected() == true && currentTabMode == Prefs.TAB_CRYPTO
                 adapter.submit(watch.map { s ->
                     val fresh = map[s]
                     val cached = if (preferCached) adapter.cached(s) else null
@@ -492,11 +646,54 @@ class MainActivity : BaseActivity() {
             lp.height = (basePillH * scale * density).toInt()
             holder.change.layoutParams = lp
 
-            holder.symbol.text = t.symbol
+            val isAshareItem = currentTabMode == Prefs.TAB_A_SHARE || t.symbol.endsWith("-CNY") || t.symbol.matches(Regex("^[0-9]{6}.*"))
+            val isUsStockItem = currentTabMode == Prefs.TAB_US_STOCK || t.symbol.endsWith("-USD") || UsStockSource.DEFAULT_SYMBOLS.contains(t.symbol) || Prefs.getUsStockWatchlist(this@MainActivity).contains(t.symbol)
+
+            if (isAshareItem) {
+                val stockName = t.displayName ?: AshareMarkets.getKnownName(t.symbol)
+                if (!stockName.isNullOrBlank()) {
+                    holder.symbol.text = stockName
+                    val cleanCode = AshareMarkets.cleanCode(t.symbol)
+                    if (t.valid) {
+                        holder.vol.text = "$cleanCode · " + getString(R.string.item_vol, Fmt.vol(t.quoteVol24h))
+                    } else {
+                        holder.vol.text = cleanCode
+                    }
+                } else {
+                    holder.symbol.text = t.symbol
+                    if (t.valid) {
+                        holder.vol.text = getString(R.string.item_vol, Fmt.vol(t.quoteVol24h))
+                    } else {
+                        holder.vol.text = getString(R.string.placeholder)
+                    }
+                }
+            } else if (isUsStockItem) {
+                val usName = t.displayName ?: UsStockSource.getKnownName(t.symbol)
+                holder.symbol.text = t.symbol
+                if (!usName.isNullOrBlank()) {
+                    if (t.valid) {
+                        holder.vol.text = "$usName · " + getString(R.string.item_vol, Fmt.vol(t.quoteVol24h))
+                    } else {
+                        holder.vol.text = usName
+                    }
+                } else {
+                    if (t.valid) {
+                        holder.vol.text = getString(R.string.item_vol, Fmt.vol(t.quoteVol24h))
+                    } else {
+                        holder.vol.text = getString(R.string.placeholder)
+                    }
+                }
+            } else {
+                holder.symbol.text = t.symbol
+                if (t.valid) {
+                    holder.vol.text = getString(R.string.item_vol, Fmt.vol(t.quoteVol24h))
+                } else {
+                    holder.vol.text = getString(R.string.placeholder)
+                }
+            }
 
             if (t.valid) {
                 val c = Palette.byDelta(this@MainActivity, t.changePct)
-                holder.vol.text = getString(R.string.item_vol, Fmt.vol(t.quoteVol24h))
                 holder.price.text = Fmt.price(t.last)
                 holder.price.setTextColor(c)
                 holder.change.text = Fmt.pct(t.changePct)
@@ -504,7 +701,6 @@ class MainActivity : BaseActivity() {
             } else {
                 // 尚未拉到行情：统一显示占位符并用中性色，避免误读成 0 价
                 val ph = getString(R.string.placeholder)
-                holder.vol.text = ph
                 holder.price.text = ph
                 holder.price.setTextColor(COLOR_NEUTRAL)
                 holder.change.text = ph

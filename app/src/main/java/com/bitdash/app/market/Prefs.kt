@@ -241,6 +241,78 @@ object Prefs {
         "BTC-USDT", "ETH-USDT", "SOL-USDT", "BNB-USDT", "XRP-USDT", "DOGE-USDT"
     )
 
+    // ---------- 美股代币自选列表 ----------
+
+    private const val KEY_US_STOCK_WATCH = "us_stock_watchlist"
+    private const val KEY_A_SHARE_WATCH = "a_share_watchlist"
+    private const val KEY_HOME_TAB_MODE = "home_tab_mode" // 0: 加密自选, 1: 美股, 2: A股
+
+    const val TAB_CRYPTO = 0
+    const val TAB_US_STOCK = 1
+    const val TAB_A_SHARE = 2
+
+    fun getHomeTabMode(ctx: Context): Int = sp(ctx).getInt(KEY_HOME_TAB_MODE, TAB_CRYPTO)
+    fun saveHomeTabMode(ctx: Context, mode: Int) = sp(ctx).edit().putInt(KEY_HOME_TAB_MODE, mode).apply()
+
+    fun getUsStockWatchlist(ctx: Context): MutableList<String> {
+        val raw = sp(ctx).getString(KEY_US_STOCK_WATCH, null) ?: return defaultUsStockWatchlist()
+        val out = ArrayList<String>()
+        try {
+            val arr = JSONArray(raw)
+            for (i in 0 until arr.length()) {
+                val s = arr.optString(i).trim().uppercase()
+                if (s.isNotEmpty() && !out.contains(s)) out.add(s)
+            }
+        } catch (_: Exception) {}
+        return out
+    }
+
+    fun saveUsStockWatchlist(ctx: Context, list: List<String>) {
+        val arr = JSONArray()
+        list.forEach { arr.put(it) }
+        sp(ctx).edit().putString(KEY_US_STOCK_WATCH, arr.toString()).apply()
+    }
+
+    private fun defaultUsStockWatchlist(): MutableList<String> = mutableListOf(
+        "NVDA-USD", "TSLA-USD", "AAPL-USD", "MSFT-USD", "COIN-USD", "MSTR-USD", "AMD-USD", "GOOGL-USD", "AMZN-USD", "META-USD", "PLTR-USD", "SPY-USD", "QQQ-USD"
+    )
+
+    // ---------- A股自选列表 ----------
+    fun getAshareWatchlist(ctx: Context): MutableList<String> {
+        val raw = sp(ctx).getString(KEY_A_SHARE_WATCH, null) ?: return defaultAshareWatchlist()
+        val out = ArrayList<String>()
+        try {
+            val arr = JSONArray(raw)
+            for (i in 0 until arr.length()) {
+                val s = arr.optString(i).trim().uppercase()
+                if (s.isNotEmpty() && !out.contains(s)) out.add(s)
+            }
+        } catch (_: Exception) {}
+        return out
+    }
+
+    fun saveAshareWatchlist(ctx: Context, list: List<String>) {
+        val arr = JSONArray()
+        list.forEach { arr.put(it) }
+        sp(ctx).edit().putString(KEY_A_SHARE_WATCH, arr.toString()).apply()
+    }
+
+    private fun defaultAshareWatchlist(): MutableList<String> = mutableListOf(
+        "600519-CNY", "300750-CNY", "002594-CNY", "601318-CNY", "600036-CNY", "300059-CNY", "600030-CNY", "000001-CNY", "601899-CNY", "002475-CNY", "000001.SH-CNY", "399001.SZ-CNY", "399006.SZ-CNY"
+    )
+
+    // ---------- RWA / 美股行情源 ----------
+    private const val KEY_RWA_SOURCE = "rwa_source_id"
+
+    fun getRwaSourceId(ctx: Context): String = sp(ctx).getString(KEY_RWA_SOURCE, RwaMarkets.AUTO) ?: RwaMarkets.AUTO
+    fun saveRwaSourceId(ctx: Context, id: String) = sp(ctx).edit().putString(KEY_RWA_SOURCE, id).apply()
+
+    // ---------- A股行情源 ----------
+    private const val KEY_A_SHARE_SOURCE = "a_share_source_id"
+
+    fun getAshareSourceId(ctx: Context): String = sp(ctx).getString(KEY_A_SHARE_SOURCE, AshareMarkets.AUTO) ?: AshareMarkets.AUTO
+    fun saveAshareSourceId(ctx: Context, id: String) = sp(ctx).edit().putString(KEY_A_SHARE_SOURCE, id).apply()
+
     // ---------- 悬浮窗 ----------
 
     /** 悬浮窗是否开启 */

@@ -41,7 +41,8 @@ data class Ticker(
     val open24h: Double,
     val high24h: Double,
     val low24h: Double,
-    val quoteVol24h: Double
+    val quoteVol24h: Double,
+    val displayName: String? = null
 ) {
     /** 24h 涨跌幅百分比（正=涨 负=跌） */
     val changePct: Double

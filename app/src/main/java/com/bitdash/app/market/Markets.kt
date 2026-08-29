@@ -66,10 +66,11 @@ object Markets {
             displayName = "OKX AWS 节点",
             note = "OKX 备用节点",
             domain = "https://aws.okx.com"
-        )
+        ),
+        UsStockSource
     )
 
-    fun byId(id: String?): MarketSource? = SOURCES.firstOrNull { it.id == id }
+    fun byId(id: String?): MarketSource? = if (id == UsStockSource.id) UsStockSource else SOURCES.firstOrNull { it.id == id }
 
     /**
      * 当前实际生效的源 id；无法确定时返回 null。

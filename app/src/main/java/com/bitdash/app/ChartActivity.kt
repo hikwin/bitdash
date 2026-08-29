@@ -22,12 +22,15 @@ import com.bitdash.app.market.Candle
 import com.bitdash.app.market.Fmt
 import com.bitdash.app.market.Markets
 import com.bitdash.app.market.Palette
+import com.bitdash.app.market.AshareMarkets
 import com.bitdash.app.market.Prefs
 import com.bitdash.app.market.RealtimeSession
 import com.bitdash.app.market.RtEvent
 import com.bitdash.app.market.RtScope
 import com.bitdash.app.market.RtSub
+import com.bitdash.app.market.RwaMarkets
 import com.bitdash.app.market.Ticker
+import com.bitdash.app.market.UsStockSource
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -165,7 +168,15 @@ class ChartActivity : BaseActivity() {
             }
         }
 
-        symbolView.text = symbol
+        val ashareName = AshareMarkets.getKnownName(symbol)
+        val usName = UsStockSource.getKnownName(symbol)
+        if (isAshare(symbol) && !ashareName.isNullOrBlank()) {
+            symbolView.text = "$ashareName (${AshareMarkets.cleanCode(symbol)})"
+        } else if (isUsStock(symbol) && !usName.isNullOrBlank()) {
+            symbolView.text = "$usName (${UsStockSource.cleanTicker(symbol)})"
+        } else {
+            symbolView.text = symbol
+        }
         btnStar.setOnClickListener { toggleWatch() }
         updateStarStatus()
 
@@ -248,14 +259,30 @@ class ChartActivity : BaseActivity() {
         }
     }
 
+    private fun isUsStock(sym: String): Boolean =
+        sym.endsWith("-USD") || UsStockSource.DEFAULT_SYMBOLS.contains(sym) || Prefs.getUsStockWatchlist(this).contains(sym)
+
+    private fun isAshare(sym: String): Boolean =
+        sym.endsWith("-CNY") || AshareMarkets.DEFAULT_SYMBOLS.contains(sym) || Prefs.getAshareWatchlist(this).contains(sym) || sym.matches(Regex("^[0-9]{6}(-CNY)?$"))
+
     private fun updateStarStatus() {
-        val inWatch = Prefs.getWatchlist(this).contains(symbol)
+        val inWatch = when {
+            isAshare(symbol) -> Prefs.getAshareWatchlist(this).contains(symbol)
+            isUsStock(symbol) -> Prefs.getUsStockWatchlist(this).contains(symbol)
+            else -> Prefs.getWatchlist(this).contains(symbol)
+        }
         btnStar.setImageResource(if (inWatch) R.drawable.ic_star else R.drawable.ic_star_border)
         btnStar.contentDescription = getString(if (inWatch) R.string.remove_watch else R.string.add_watch)
     }
 
     private fun toggleWatch() {
-        val watch = LinkedHashSet(Prefs.getWatchlist(this))
+        val inAsh = isAshare(symbol)
+        val inUs = isUsStock(symbol)
+        val watch = when {
+            inAsh -> LinkedHashSet(Prefs.getAshareWatchlist(this))
+            inUs -> LinkedHashSet(Prefs.getUsStockWatchlist(this))
+            else -> LinkedHashSet(Prefs.getWatchlist(this))
+        }
         val added = if (watch.contains(symbol)) {
             watch.remove(symbol)
             false
@@ -271,7 +298,11 @@ class ChartActivity : BaseActivity() {
         } else {
             ArrayList(watch)
         }
-        Prefs.saveWatchlist(this, ordered)
+        when {
+            inAsh -> Prefs.saveAshareWatchlist(this, ordered)
+            inUs -> Prefs.saveUsStockWatchlist(this, ordered)
+            else -> Prefs.saveWatchlist(this, ordered)
+        }
         updateStarStatus()
         Toast.makeText(
             this, if (added) R.string.add_watch else R.string.remove_watch, Toast.LENGTH_SHORT
@@ -356,6 +387,16 @@ class ChartActivity : BaseActivity() {
      * 切周期、改设置、连接状态变化时都要调。
      */
     private fun applyRefreshStrategy() {
+        val isAsh = isAshare(symbol)
+        val isUs = isUsStock(symbol)
+        if (isAsh || isUs) {
+            rt?.stop()
+            handler.removeCallbacks(autoRefresh)
+            intervalMs = Prefs.getRefreshMs(this).coerceAtLeast(3000L)
+            if (intervalMs > 0) handler.postDelayed(autoRefresh, intervalMs)
+            return
+        }
+
         val session = rt ?: return
 
         val wantRealtime = session.available(RtScope::forChart)
@@ -463,6 +504,13 @@ class ChartActivity : BaseActivity() {
         if (t.last > 0.0) {
             com.bitdash.app.alert.PriceAlertManager.onPriceUpdate(this, symbol, t.last)
         }
+        val ashareName = t.displayName ?: AshareMarkets.getKnownName(symbol)
+        val usName = t.displayName ?: UsStockSource.getKnownName(symbol)
+        if (isAshare(symbol) && !ashareName.isNullOrBlank()) {
+            symbolView.text = "$ashareName (${AshareMarkets.cleanCode(symbol)})"
+        } else if (isUsStock(symbol) && !usName.isNullOrBlank()) {
+            symbolView.text = "$usName (${UsStockSource.cleanTicker(symbol)})"
+        }
         val c = Palette.byDelta(this, t.changePct)
         price.text = Fmt.price(t.last)
         price.setTextColor(c)
@@ -478,7 +526,11 @@ class ChartActivity : BaseActivity() {
         tickerJob = lifecycleScope.launch(Dispatchers.Main) {
             try {
                 val t = withContext(Dispatchers.IO) {
-                    Markets.withSource(this@ChartActivity) { it.ticker(symbol) }
+                    when {
+                        isAshare(symbol) -> AshareMarkets.activeSource(this@ChartActivity).ticker(symbol)
+                        isUsStock(symbol) -> RwaMarkets.activeSource(this@ChartActivity).ticker(symbol)
+                        else -> Markets.withSource(this@ChartActivity) { it.ticker(symbol) }
+                    }
                 }
                 // 推送已接管时不要用较旧的 REST 快照把价格拽回去
                 if (rt?.isConnected() == true && pendingTicker != null) return@launch
@@ -499,7 +551,11 @@ class ChartActivity : BaseActivity() {
         candleJob = lifecycleScope.launch(Dispatchers.Main) {
             try {
                 val list = withContext(Dispatchers.IO) {
-                    Markets.withSource(this@ChartActivity) { it.candles(symbol, bar, CANDLE_LIMIT) }
+                    when {
+                        isAshare(symbol) -> AshareMarkets.activeSource(this@ChartActivity).candles(symbol, bar, CANDLE_LIMIT)
+                        isUsStock(symbol) -> RwaMarkets.activeSource(this@ChartActivity).candles(symbol, bar, CANDLE_LIMIT)
+                        else -> Markets.withSource(this@ChartActivity) { it.candles(symbol, bar, CANDLE_LIMIT) }
+                    }
                 }
                 // 双保险：协程取消之外再比对一次周期，避免旧结果覆盖新图
                 if (bar != currentBar) return@launch
@@ -798,6 +854,12 @@ class ChartActivity : BaseActivity() {
                 updateIndicatorTabsUI()
                 chart.refreshIndicatorToggles()
             }
+        }
+
+        val idAutoTrading = menuId++
+        popup.menu.add(0, idAutoTrading, idAutoTrading, "🤖 AI 自动化模拟交易...")
+        itemActionMap[idAutoTrading] = {
+            AutoTradingActivity.start(this, symbol, currentBar.key)
         }
 
         popup.setOnMenuItemClickListener { item ->

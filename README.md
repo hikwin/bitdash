@@ -1,62 +1,32 @@
-# BitDash (加密货币实时行情看板、预警系统与桌面悬浮窗)
+# BitDash (v1.6)
 
-BitDash 是一款轻量、现代且高效的 Android 原生加密货币行情看板应用。支持多主流交易所实时行情接入、专业级 13 大 K 线图表技术指标、全方位价格/异动预警系统（支持系统通知、Toast、Webhook 机器人与 HTTP 接口多通道推送），以及极简风格的桌面悬浮窗实时监控。
-
----
-
-## 🌟 核心功能特性
-
-### 1. 📊 专业 K 线图表与技术指标
-- 📈 **轻量硬件加速蜡烛图**：支持 1m / 5m / 15m / 1h / 4h / 1d / 1w / 1M 多周期无缝切换，平滑缩放拖拽。
-- 🛠️ **13 大主副图指标库**：
-  - **主图**：MA（移动均线）、EMA、BOLL（布林带）、SuperTrend（超级趋势）、Fibonacci（斐波那契回调线）、TURTLE（海龟交易法：通道 + ATR/N 值联动）。
-  - **副图**：VOL（成交量）、MACD、RSI、KDJ。
-- 📏 **区间测算尺**：双指长按调出测算尺，实时测量任意两点间的价差、涨跌幅、K 线根数与时间跨度。
-- ⚙ **指标栏自适应折叠**：底部指标栏动态测宽防溢出，点击文字即时高亮/变暗开关，齿轮按扭支持自定义各指标参数。
-- 🎯 **触感震动十字光标**：单点或长按唤出光标，带触感反馈，丝滑跟随手指精准查价。
+BitDash 是一款轻量、现代且高性能的 Android 原生全市场金融行情终端与量化交易辅助应用。涵盖**加密货币、A股、美股及大宗商品（黄金/原油/白银）**，支持毫秒级实时报价、自研硬件加速 K 线、量化策略脚本回测与自动化交易、多通道预警以及极简桌面悬浮窗。
 
 ---
 
-### 2. 🔔 价格预警与异动监控系统 (v1.5)
-- 🎯 **目标价与异动预警**：支持价格突破/跌破预警，及 1m ~ 30m 滑动时间窗口内的急涨/急跌异动监控。
-- 🔍 **币种搜索与价格带入**：支持搜索全市场币种，点击自动带入实时参考价至目标价，提供 `±2%~10%` 快捷一键增减。
-- 📢 **4 大推送通知渠道（可多选）**：
-  - **系统通知栏**：标准状态栏横幅与锁屏通知。
-  - **屏幕 Toast 提示**：应用内气泡轻提示，盯盘直观可见。
-  - **自定义 Webhook 机器人**：支持钉钉（含加签密钥 Secret 签名）、飞书、企业微信与通用 JSON。
-  - **HTTP 自定义接口**：支持 GET / POST 请求，支持自定义 Headers、Body 与 `{symbol}`, `{price}`, `{title}`, `{message}` 动态占位符。
-- ⚙ **独立推送配置页面**：支持独立管理 Webhook 与 HTTP 接口，提供 **【🚀 发送测试】** 实时验证连通性。
-- ⚡ **强提醒与铃声定制**：支持突破后连续提醒（1/2/3/5/10/无限次），默认无声静音推送，支持手机内置铃声试听与已选位置自动定位。
+## 🌟 核心功能
 
----
+### 1. 🌐 全资产市场覆盖
+- **加密货币**：直连主流交易所（Binance、OKX、Gate、Huobi 等），支持 WebSocket 实时秒级推送。
+- **A股专线**：直连国内金融数据中心，支持沪深北全标的、大盘指数、分时及日/周/月 K 线。
+- **美股与大宗商品**：覆盖美股巨头、中概股与热门大宗商品 ETF（黄金 GLD/IAU、白银 SLV、原油 USO/BNO 等），提供公司名称解析与智能日/周/月 K 线。
 
-### 3. 🪟 极简桌面悬浮窗
-- 火币 App 风格半透明悬浮胶囊，无需打开应用即可在桌面或其他 App 上实时盯盘。
-- **极简数字规则**：大额币种仅显示整数、微额币种采用 `0.0(N)XX` 紧凑零计数法。
-- **抽屉式贴边收起**：拖出屏幕边缘超一半松手自动收缩为侧边悬浮条，点击/拉动平滑弹出。
-- **智能边界保护**：上下边缘自动防遮挡状态栏与底部手势导航条。
-- **自选与透明度调节**：支持自选 1 ~ 10 个币种拖拽排序，支持 20% ~ 100% 透明度实时预览调节。
+### 2. 📊 专业 K 线与指标系统
+- **轻量硬件加速图表**：支持 1m ~ 1M 多周期无缝缩放拖拽。
+- **主流技术指标库**：MA、EMA、BOLL、SuperTrend、Fibonacci、TURTLE（海龟交易法）、VOL、MACD、RSI、KDJ、Lorentzian 分类等。
+- **区间测算尺**：双指长按快速测量任意两点间价差、涨跌幅、K 线数及时间跨度。
 
----
+### 3. 🤖 量化脚本与自动化交易
+- **自定义 PineScript 脚本**：支持策略编写、指标叠加与快速回测（胜率/收益率/最大回撤）。
+- **自动化策略交易**：支持信号触发、止盈止损自动管理与模拟实盘交易执行。
 
-### 4. 🌓 外观主题、多语言与硬件适配
-- 🎨 **专业夜间/日间主题**：默认深色交易界面，支持一键切换亮色模式或跟随系统。
-- 🔄 **全向屏幕自适应**：支持 0°/90°/180°/270° 及**重力感应自适应旋转**。
-- 💱 **法币多币种汇率**：支持实时将价格折算为 USD、CNY、EUR、JPY、GBP 等法币。
-- 🚀 **极小包体 (1.87 MB)**：深度启用 R8 优化与 ProGuard 资源压缩，兼顾 32 位与 64 位全机型流畅运行。
+### 4. 🔔 价格预警与多通道通知
+- **价格与异动监控**：支持目标价突破/跌破及短期急涨急跌异动预警。
+- **4 大推送通道**：系统状态栏通知、应用内 Toast 气泡、Webhook 机器人（钉钉/企业微信/飞书）、自定义 HTTP 接口（GET/POST）。
 
----
-
-## 📌 悬浮窗极简显示规则速查
-
-| 规则维度 | 处理逻辑 | 示例说明 |
-| :--- | :--- | :--- |
-| **代币名称精简** | 去除交易对后缀（如 `-USDT`、`/USDT`），仅保留代币代码 | `BTC-USDT` ➔ **`BTC`**<br>`DOGE/USDT` ➔ **`DOGE`** |
-| **大额币种 (≥ $100)** | 价格四舍五入**仅显示整数位**，极致精炼 | $96,420.35 ➔ **`96420`**<br>$2,730.80 ➔ **`2730`** |
-| **中额币种 ($10 ~ $100)** | 保留 **2 位小数** | $25.503 ➔ **`25.50`**<br>$18.2 ➔ **`18.20`** |
-| **小额币种 ($1 ~ $10)** | 保留 **4 位小数** | $2.45601 ➔ **`2.4560`** |
-| **微额币种 ($10^{-4} ~ $1)** | 最多保留 **5 位小数**，去除末尾多余 0 | $0.070580 ➔ **`0.07058`**<br>$0.000120 ➔ **`0.00012`** |
-| **超微额币种 (小数点后 ≥ 5 个 0)** | 采用 **`0.0(N)XX` 紧凑零计数法** | $0.0000025 ➔ **`0.0(5)25`**<br>$0.000000025 ➔ **`0.0(7)25`** |
+### 5. 🪟 极简桌面悬浮窗
+- **胶囊悬浮窗**：桌面常驻盯盘，支持大额整数精炼与微额 `0.0(N)XX` 紧凑计数。
+- **贴边收纳与自适应**：支持抽屉式贴边折叠、20%~100% 透明度调节与边缘防遮挡。
 
 ---
 
@@ -65,54 +35,65 @@ BitDash 是一款轻量、现代且高效的 Android 原生加密货币行情看
 ```text
 app/src/main/
 ├── java/com/bitdash/app/
-│   ├── BaseActivity.kt              # 统一屏幕旋转与主题基类
-│   ├── MainActivity.kt              # 行情看板主界面与数据刷新
-│   ├── ChartActivity.kt             # 币种详情、K 线交互与 13 大指标渲染
-│   ├── SearchActivity.kt            # 币种全局搜索与自选管理
+│   ├── BaseActivity.kt              # 基础 Activity (统一屏幕方向与主题)
+│   ├── MainActivity.kt              # 行情看板主界面 (自选/美股/A股切换与刷新)
+│   ├── ChartActivity.kt             # 标的详情页 (K线交互/13大指标/测算尺)
+│   ├── SearchActivity.kt            # 全局搜索与自选管理 (支持拼音/代码/中文名检索)
+│   ├── AutoTradingActivity.kt       # 自动化量化策略实盘/模拟交易监控
 │   ├── CandleChartView.kt           # 自研轻量级硬件加速蜡烛图控件
-│   ├── FloatingWindowService.kt     # 桌面悬浮窗前台服务与 Overlay 渲染
-│   ├── SettingsDialog.kt            # 主偏好设置与弹窗导航
-│   ├── alert/                       # 价格与异动预警子系统
-│   │   ├── PriceAlert.kt            # 预警数据模型与 JSON 序列化
-│   │   ├── PriceAlertManager.kt     # 毫秒级价格计算与多通道统一分发引擎
+│   ├── FloatingWindowService.kt     # 桌面悬浮窗前台服务与贴边抽屉渲染
+│   ├── BacktestSetupDialog.kt       # 策略回测参数配置弹窗
+│   ├── BacktestResultDialog.kt      # 策略回测绩效报告弹窗 (收益率/最大回撤/胜率)
+│   ├── ScriptManagerDialog.kt       # PineScript 策略脚本管理与代码编辑器
+│   ├── IndicatorSettingsDialog.kt   # 13大指标参数自定义设置弹窗
+│   ├── SettingsDialog.kt            # 用户偏好/行情源/字体缩放与通用设置
+│   ├── SourcePicker.kt              # 行情数据源优选与延迟探测器
+│   ├── alert/                       # 价格预警与异动监控子系统
+│   │   ├── PriceAlert.kt            # 预警数据模型与序列化
+│   │   ├── PriceAlertManager.kt     # 毫秒级价格计算与多通道分发引擎
 │   │   ├── PriceAlertStore.kt       # 预警持久化存储
-│   │   ├── PriceAlertDialog.kt      # 预警列表与新增/编辑弹窗（含铃声与币种选择器）
-│   │   ├── PushChannelConfig.kt     # Webhook/HTTP 配置存储与 OkHttp 异步网络分发器
-│   │   └── PushChannelSettingsDialog.kt # 独立的推送渠道与 Webhook 配置页面
-│   └── market/                      # 行情数据层 (WebSocket/REST API/Prefs/格式化)
-│       ├── FloatingFmt.kt           # 悬浮窗极简格式化工具类
-│       ├── Fmt.kt                   # 基础价格与数值格式化
-│       ├── Symbols.kt               # 交易对与币种标准化工具
-│       ├── Markets.kt               # 多交易所行情源调度聚合
-│       └── Prefs.kt                 # 用户偏好 SharedPreferences 持久化
-├── res/
-│   ├── layout/                      # 布局文件 (含预警、K线、悬浮窗、设置等)
-│   ├── values/                      # 颜色调色板、样式、多语言字符串
-│   └── drawable/                    # 矢量图标与 UI 质感背景资源
-└── AndroidManifest.xml              # 权限、服务与 Activity 声明
+│   │   ├── PriceAlertDialog.kt      # 预警列表与新增/编辑弹窗
+│   │   ├── PushChannelConfig.kt     # Webhook/HTTP 渠道配置与异步网络分发
+│   │   └── PushChannelSettingsDialog.kt # 推送通道与机器人配置管理
+│   └── market/                      # 多市场数据层与策略引擎
+│       ├── AshareMarkets.kt         # A股直连行情、分时与周/月K线
+│       ├── RwaMarkets.kt            # 美股/大宗商品专线与智能日K聚合
+│       ├── UsStockSource.kt         # 美股字典与公共数据接口
+│       ├── Markets.kt               # 加密货币多交易所统一调度聚合
+│       ├── RealtimeSession.kt       # WebSocket 极速实时流会话
+│       ├── Indicators.kt            # 13大技术指标与 Lorentzian 算法库
+│       ├── PineScriptManager.kt     # PineScript 策略解析执行引擎
+│       ├── StrategyBacktester.kt    # 历史 K 线量化策略回测引擎
+│       ├── PaperTradingEngine.kt    # 模拟与自动化实盘订单撮合引擎
+│       ├── FloatingFmt.kt           # 悬浮窗紧凑数字与零计数格式化
+│       ├── Fmt.kt                   # 基础价格与大数格式化
+│       ├── Symbols.kt               # 交易对与标的代码标准化
+│       └── Prefs.kt                 # SharedPreferences 持久化管理
+├── res/                             # 界面布局 (含横竖屏适配)、调色板、矢量图标
+└── AndroidManifest.xml              # 权限、前台服务与组件声明
 ```
 
 ---
 
-## 🛠️ 技术栈与环境要求
+## 🛠️ 技术栈与规范
 
-- **语言**: Kotlin (JVM 17 Target)
-- **编译环境**: Android Gradle Plugin 8.3+, Gradle 8.4+, JDK 17
-- **SDK 版本**: Compile SDK 34 / Min SDK 24 (Android 7.0+) / Target SDK 34
-- **核心依赖**: AndroidX, ViewBinding, Kotlin Coroutines, OkHttp 4, Material Design 3
-- **系统特性**: WindowManager Overlay (`SYSTEM_ALERT_WINDOW`), Foreground Service, NotificationManagerCompat
+- **开发语言**: Kotlin (JVM 17 Target)
+- **编译配置**: Android Gradle Plugin 8.3+, Gradle 8.4+, JDK 17
+- **系统要求**: Android 7.0+ (Min SDK 24 / Target SDK 34)
+- **核心组件**: AndroidX, ViewBinding, Kotlin Coroutines, OkHttp 4, Material Design 3
+- **包体优化**: R8 深度优化与资源混淆压缩 (Release APK 仅约 2.0 MB)
 
 ---
 
-## 🚀 编译与打包
+## 🚀 编译构建
 
 ```powershell
-# (可选) 指定 JDK 17 路径（若系统环境变量未配置）
-# $env:JAVA_HOME="<你的JDK-17路径>"
+# 1. (可选) 指定本地 JDK 17 环境变量
+# $env:JAVA_HOME = "<你的JDK-17安装路径>"
 
-# 编译生成 Release 正式版 APK (约 1.87MB)
-.\gradlew assembleRelease
+# 2. 编译 Release 正式版 APK
+.\gradlew.bat assembleRelease
 
-# 编译生成 Debug 测试版 APK
-.\gradlew assembleDebug
+# 3. 编译 Debug 测试版 APK
+.\gradlew.bat assembleDebug
 ```
